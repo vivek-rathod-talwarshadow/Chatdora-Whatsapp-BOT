@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="format-detection" content="telephone=no,address=no,email=no,date=no,url=no" />
+    <title>Confirm your ChatDora account</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #f4efe7;
+        font-family: Arial, Helvetica, sans-serif;
+        color: #1f2937;
+      }
+
+      table {
+        border-spacing: 0;
+      }
+
+      td {
+        padding: 0;
+      }
+
+      img {
+        border: 0;
+        display: block;
+        line-height: 100%;
+      }
+
+      a {
+        text-decoration: none;
+      }
+
+      .wrapper {
+        width: 100%;
+        table-layout: fixed;
+        background:
+          radial-gradient(circle at top left, #fde7c2 0%, #f4efe7 42%),
+          linear-gradient(180deg, #f7f2ea 0%, #efe5d8 100%);
+        padding: 32px 12px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        background-color: #fffdfa;
+        border: 1px solid #eadfce;
+        border-radius: 28px;
+        overflow: hidden;
+        box-shadow: 0 20px 45px rgba(103, 76, 33, 0.12);
+      }
+
+      .hero {
+        background: linear-gradient(135deg, #103b2f 0%, #1f6f57 55%, #e4a63c 100%);
+        padding: 40px 32px 28px;
+        color: #ffffff;
+      }
+
+      .badge {
+        display: inline-block;
+        font-size: 12px;
+        line-height: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 10px 12px;
+        border-radius: 999px;
+        background-color: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+      }
+
+      .content {
+        padding: 32px;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 16px 28px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #ef9f2f 0%, #d97706 100%);
+        color: #ffffff !important;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .panel {
+        margin-top: 24px;
+        padding: 20px;
+        border: 1px solid #eadfce;
+        border-radius: 20px;
+        background-color: #fff8ef;
+      }
+
+      .footer {
+        padding: 0 32px 32px;
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 20px;
+      }
+
+      .footer a,
+      .link {
+        color: #14532d;
+      }
+
+      @media only screen and (max-width: 640px) {
+        .wrapper {
+          padding: 18px 8px;
+        }
+
+        .hero,
+        .content,
+        .footer {
+          padding-left: 22px !important;
+          padding-right: 22px !important;
+        }
+
+        .hero {
+          padding-top: 30px !important;
+        }
+
+        .mobile-full {
+          width: 100% !important;
+        }
+
+        .button {
+          display: block !important;
+          text-align: center !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <table role="presentation" class="wrapper" width="100%">
+      <tr>
+        <td align="center">
+          <table role="presentation" class="container" width="100%">
+            <tr>
+              <td class="hero">
+                <table role="presentation" width="100%">
+                  <tr>
+                    <td align="left">
+                      <table role="presentation">
+                        <tr>
+                          <td>
+                            <img
+                              src="https://chatdora.in/dora-logo.png"
+                              alt="ChatDora"
+                              width="56"
+                              height="56"
+                              style="border-radius: 18px; background-color: #ffffff;"
+                            />
+                          </td>
+                          <td style="padding-left: 14px; color: #ffffff;">
+                            <div style="font-size: 22px; font-weight: 700; line-height: 26px;">ChatDora</div>
+                            <div style="font-size: 13px; line-height: 18px; opacity: 0.88;">AI WhatsApp Bot for local businesses</div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-top: 28px;">
+                      <div class="badge">Account Verification</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-top: 18px; font-size: 34px; line-height: 42px; font-weight: 700;">
+                      Confirm your email and start using ChatDora
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-top: 14px; font-size: 16px; line-height: 26px; color: rgba(255, 255, 255, 0.88);">
+                      Secure your account and unlock your WhatsApp FAQ bot dashboard in one quick step.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="content">
+                <table role="presentation" width="100%">
+                  <tr>
+                    <td style="font-size: 16px; line-height: 28px; color: #374151;">
+                      Hi,
+                      <br /><br />
+                      Thanks for signing up for <strong>ChatDora</strong>. Please confirm this email address to activate your account and continue setting up your AI-powered WhatsApp support experience.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="left" style="padding-top: 28px;">
+                      <a href="{{ .ConfirmationURL }}" class="button mobile-full">Confirm Email Address</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-top: 20px; font-size: 14px; line-height: 24px; color: #6b7280;">
+                      If the button does not work, copy and paste this link into your browser:
+                      <br />
+                      <a href="{{ .ConfirmationURL }}" class="link">{{ .ConfirmationURL }}</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="panel">
+                        <div style="font-size: 15px; font-weight: 700; color: #111827;">Why confirm your email?</div>
+                        <div style="padding-top: 10px; font-size: 14px; line-height: 24px; color: #4b5563;">
+                          Email verification helps us protect your workspace, secure account access, and make sure important ChatDora updates reach the right inbox.
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-top: 24px; font-size: 14px; line-height: 24px; color: #6b7280;">
+                      If you did not create a ChatDora account, you can safely ignore this email.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td class="footer">
+                <table role="presentation" width="100%" style="border-top: 1px solid #eadfce; padding-top: 24px;">
+                  <tr>
+                    <td style="font-size: 14px; line-height: 24px; color: #374151;">
+                      <strong>ChatDora</strong><br />
+                      Website:
+                      <a href="https://chatdora.in">chatdora.in</a><br />
+                      Email:
+                      <a href="mailto:contactus@chatdora.in">contactus@chatdora.in</a><br />
+                      Phone:
+                      <a href="tel:+917622858519">+91 76228 58519</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding-top: 16px; font-size: 12px; line-height: 20px; color: #6b7280;">
+                      This email was sent to confirm your ChatDora signup. Powered by Supabase authentication with custom ChatDora branding.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
