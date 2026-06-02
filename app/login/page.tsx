@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AuthForm } from "@/components/forms/auth-form";
 import { PublicFooter } from "@/components/marketing/public-footer";
 import { AppLogo } from "@/components/layout/app-logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+
+export const metadata: Metadata = {
+  title: "Login",
+  robots: {
+    index: false,
+    follow: false
+  }
+};
 
 export default function LoginPage() {
   return (
@@ -16,9 +25,6 @@ export default function LoginPage() {
         <section className="py-8 md:py-10 lg:flex-1 lg:py-12">
           <div className="grid w-full items-start gap-10 lg:min-h-[60vh] lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div className="space-y-6">
-              <div className="inline-flex rounded-full bg-white/70 px-4 py-2 text-xs font-medium text-emerald-900 shadow-sm">
-                Free + Plus ₹899/month
-              </div>
               <h1 className="max-w-xl font-[var(--font-sora)] text-4xl font-semibold leading-tight md:text-5xl">
                 Reply faster on WhatsApp without losing the human touch.
               </h1>

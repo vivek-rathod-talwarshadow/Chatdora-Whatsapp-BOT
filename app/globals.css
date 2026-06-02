@@ -43,7 +43,10 @@
 }
 
 html {
+  min-height: 100%;
   scroll-behavior: smooth;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bg-hero-grid {
@@ -60,9 +63,19 @@ html {
 
 body {
   @apply bg-background text-foreground antialiased;
+  min-height: 100vh;
+  overscroll-behavior-y: none;
   background-image:
     radial-gradient(circle at top left, rgba(16, 185, 129, 0.12), transparent 28%),
     radial-gradient(circle at top right, rgba(251, 146, 60, 0.1), transparent 24%);
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  touch-action: manipulation;
 }
 
 .dark body {
@@ -120,6 +133,37 @@ a {
   }
 }
 
+@keyframes guide-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes guide-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes guide-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(5, 150, 105, 0);
+  }
+}
+
 .animate-chat-bubble {
   animation: chat-bubble 420ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
 }
@@ -130,4 +174,16 @@ a {
 
 .animate-chat-presence {
   animation: chat-presence 1.8s ease-in-out infinite;
+}
+
+.animate-guide-pop {
+  animation: guide-pop 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.animate-guide-float {
+  animation: guide-float 3.4s ease-in-out infinite;
+}
+
+.animate-guide-pulse {
+  animation: guide-pulse 1.8s ease-in-out infinite;
 }

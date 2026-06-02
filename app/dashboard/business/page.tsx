@@ -10,11 +10,13 @@ export default async function BusinessPage({
   searchParams?: {
     saved?: string;
     error?: string;
+    welcome?: string;
   };
 }) {
   const { business, businessError } = await getUserBusiness();
   const showSaved = searchParams?.saved === "1";
   const actionError = searchParams?.error;
+  const showWelcome = searchParams?.welcome === "1";
 
   return (
     <div className="space-y-6">
@@ -32,7 +34,13 @@ export default async function BusinessPage({
           Database error: {businessError}. This usually means the Supabase SQL migration has not been run yet.
         </div>
       ) : null}
-      <BusinessProfileForm business={business} showSaved={showSaved} action={upsertBusinessAction} businessError={businessError} />
+      <BusinessProfileForm
+        business={business}
+        showSaved={showSaved}
+        action={upsertBusinessAction}
+        businessError={businessError}
+        showWelcome={showWelcome}
+      />
     </div>
   );
 }

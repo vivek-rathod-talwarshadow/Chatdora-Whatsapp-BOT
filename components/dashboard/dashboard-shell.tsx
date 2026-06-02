@@ -48,7 +48,9 @@ export function DashboardShell({
   signOutAction,
   planName,
   monthlyMessagesRemaining,
-  canSeeSuperAdmin
+  canSeeSuperAdmin,
+  businessProfileCompletion,
+  businessProfileReady
 }: {
   children: ReactNode;
   appHostname: string;
@@ -56,6 +58,8 @@ export function DashboardShell({
   planName: string;
   monthlyMessagesRemaining: number | null;
   canSeeSuperAdmin: boolean;
+  businessProfileCompletion: number;
+  businessProfileReady: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -138,6 +142,30 @@ export function DashboardShell({
               );
             })}
           </div>
+          <div className="mb-4 rounded-3xl border border-border/70 bg-background/70 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-foreground">Setup progress</div>
+                <div className="text-xs text-muted-foreground">
+                  {businessProfileReady ? "Your profile is ready for the rest of the dashboard." : "Complete your business profile first."}
+                </div>
+              </div>
+              <Badge variant={businessProfileReady ? "success" : "secondary"}>{businessProfileCompletion}%</Badge>
+            </div>
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
+              <div className="h-full rounded-full bg-gradient-to-r from-primary via-emerald-500 to-amber-400 transition-all duration-500" style={{ width: `${businessProfileCompletion}%` }} />
+            </div>
+            <Link
+              href="/dashboard/business"
+              onClick={(event) => {
+                event.preventDefault();
+                navigateTo("/dashboard/business");
+              }}
+              className="mt-3 inline-flex text-sm font-medium text-primary hover:text-primary/80"
+            >
+              {businessProfileReady ? "Review business profile" : "Finish business setup"}
+            </Link>
+          </div>
           <form action={signOutAction} className="mt-4">
             <SubmitButton
               type="submit"
@@ -154,9 +182,6 @@ export function DashboardShell({
               <Badge>{appHostname}</Badge>
               <Badge variant={planName === "Plus" ? "success" : "secondary"}>{planName}</Badge>
             </div>
-            <p className="mt-3 text-sm text-muted-foreground">
-              ChatDora keeps local business replies fast, consistent, and lead-focused.
-            </p>
             {planName !== "Plus" ? (
               <p className="mt-2 text-xs text-muted-foreground">
                 Free plan: {monthlyMessagesRemaining ?? 0} of 100 messages left this month. Upgrade to Plus for {`₹${PLUS_PLAN_PRICE_INR}`}/month.
@@ -247,7 +272,10 @@ export function DashboardShell({
           </aside>
         </div>
       ) : null}
-      <nav className="fixed inset-x-3 bottom-3 z-40 rounded-[1.75rem] border border-border/70 bg-card/95 p-2 shadow-card backdrop-blur lg:hidden">
+      <nav
+        className="fixed inset-x-3 bottom-3 z-40 rounded-[1.75rem] border border-border/70 bg-card/95 p-2 shadow-card backdrop-blur lg:hidden"
+        style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
+      >
         <div className="grid grid-cols-4 gap-2">
           {mobilePrimaryNavigation.map((item) => {
             const Icon = item.icon;
@@ -272,7 +300,7 @@ export function DashboardShell({
           })}
         </div>
       </nav>
-      <div className="h-6 lg:hidden" />
+      <div className="h-6 lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { getPlanSummaryForBusiness } from "@/lib/billing";
 import { PLUS_PLAN_PRICE_INR, UPGRADE_CONTACT_URL } from "@/lib/plans";
 import { DashboardHeader } from "@/components/dashboard/dashboard-shell";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { NativeAppCard } from "@/components/pwa/native-app-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -100,6 +101,8 @@ export default async function AccountPage({
           ) : null}
         </CardContent>
       </Card>
+
+      <NativeAppCard />
 
       <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
         <Card>

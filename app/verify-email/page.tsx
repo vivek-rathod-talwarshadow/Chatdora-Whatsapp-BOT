@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AppLogo } from "@/components/layout/app-logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { AuthForm } from "@/components/forms/auth-form";
 import { PublicFooter } from "@/components/marketing/public-footer";
+
+export const metadata: Metadata = {
+  title: "Verify Email",
+  robots: {
+    index: false,
+    follow: false
+  }
+};
 
 type VerifyEmailPageProps = {
   searchParams?: {

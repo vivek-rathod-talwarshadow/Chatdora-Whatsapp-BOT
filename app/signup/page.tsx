@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AuthForm } from "@/components/forms/auth-form";
 import { PublicFooter } from "@/components/marketing/public-footer";
 import { AppLogo } from "@/components/layout/app-logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+
+export const metadata: Metadata = {
+  title: "Sign Up",
+  robots: {
+    index: false,
+    follow: false
+  }
+};
 
 export default function SignupPage() {
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -194,6 +195,14 @@ export function AuthForm({ mode, defaultEmail = "", verificationMode = false }: 
             <Button type="button" variant="outline" className="w-full" disabled={isResending} onClick={resendVerificationEmail}>
               {isResending ? "Sending..." : "Resend verification email"}
             </Button>
+          ) : null}
+          {!verificationMode ? (
+            <div className="text-center text-sm text-muted-foreground">
+              {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
+              <Link href={mode === "login" ? "/signup" : "/login"} className="font-medium text-primary hover:underline">
+                {mode === "login" ? "Register / Sign up" : "Login"}
+              </Link>
+            </div>
           ) : null}
         </form>
       </CardContent>

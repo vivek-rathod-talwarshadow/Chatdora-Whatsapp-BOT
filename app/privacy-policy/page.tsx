@@ -1,164 +1,149 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
-import { AppLogo } from "@/components/layout/app-logo";
-import { ThemeToggle } from "@/components/layout/theme-toggle";
-import { PublicFooter } from "@/components/marketing/public-footer";
-import { Badge } from "@/components/ui/badge";
+import { PublicPageShell } from "@/components/marketing/public-page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CHATDORA_CONTACT_EMAIL, CHATDORA_SUPPORT_PHONE, CHATDORA_WEBSITE } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | ChatDora",
-  description: "Privacy policy for ChatDora AI WhatsApp Bot."
+  description: "Privacy policy for ChatDora covering website usage, dashboard data, WhatsApp connection data, AI processing, and support requests.",
+  alternates: {
+    canonical: "/privacy-policy"
+  }
 };
 
 const sections = [
   {
-    title: "1. Overview",
+    title: "1. Scope",
     body: [
-      "This Privacy Policy explains how ChatDora collects, uses, stores, and protects information when you use our website, dashboard, WhatsApp connection features, AI reply features, and related services.",
-      "ChatDora is built to help businesses automate WhatsApp FAQ replies, collect leads, and manage customer conversations more efficiently."
+      "This Privacy Policy explains how ChatDora collects, uses, stores, shares, and protects information when you use the ChatDora website, dashboard, WhatsApp connection features, AI-assisted reply tools, support channels, and related services.",
+      `This policy applies to activity on ${CHATDORA_WEBSITE} and related product workflows.`
     ]
   },
   {
     title: "2. Information We Collect",
     body: [
-      "We may collect account information such as your name, email address, login credentials, and profile details.",
-      "We may collect business information such as business name, category, services, support details, fallback messages, contact information, and operational settings.",
-      "We may collect FAQ and bot configuration data you enter into the dashboard.",
-      "We may collect WhatsApp connection data, including connection mode, workspace/session identifiers, status, recent sync metadata, and technical connection information required to operate the service.",
-      "We may collect recent customer message logs, bot replies, lead records, and limited message context needed for reply generation and dashboard visibility."
+      "We may collect your name, email address, phone number, login details, billing information, account metadata, and business profile information.",
+      "We may collect your FAQs, knowledge base content, support messages, lead records, contact records, dashboard settings, and configuration choices.",
+      "We may collect WhatsApp-related connection details such as connection mode, QR session status, technical identifiers, sync state, connection timestamps, and limited message metadata needed to operate the service.",
+      "We may collect recent customer conversations, bot replies, troubleshooting details, and help-form submissions that you or your users send through the service."
     ]
   },
   {
     title: "3. How We Use Information",
     body: [
-      "We use collected information to provide the dashboard, authenticate users, connect WhatsApp accounts, generate replies, store FAQs, detect leads, and display operational status.",
-      "We use business profile details, FAQ data, and recent conversation context to generate more relevant automated replies.",
-      "We may use technical metadata to improve service reliability, prevent abuse, troubleshoot failures, and maintain system health."
+      "We use information to create and manage accounts, process subscriptions, authenticate access, run the dashboard, connect WhatsApp numbers, generate AI-assisted replies, detect leads, deliver support, and improve service reliability.",
+      "We may use technical logs, connection status data, and support information to diagnose bugs, investigate failures, prevent abuse, and secure the platform.",
+      "We may use your contact details to respond to help requests, product questions, legal requests, and transactional notices."
     ]
   },
   {
-    title: "4. AI and Message Processing",
+    title: "4. AI and Automated Processing",
     body: [
-      "When AI reply features are enabled, some message content and related business context may be sent to third-party AI providers to generate or improve replies.",
-      "ChatDora may route requests across multiple AI providers for fallback purposes when one provider fails, times out, or returns unusable output.",
-      "You are responsible for deciding what information is appropriate to send through AI-assisted workflows and for avoiding unnecessary sensitive personal information where possible."
+      "If AI features are enabled, message content, FAQ data, business details, and related context may be processed by third-party AI providers so ChatDora can generate or improve replies.",
+      "AI processing may involve routing to fallback providers where necessary for continuity or quality control.",
+      "You are responsible for deciding what data you send through AI-assisted workflows and for avoiding unnecessary sensitive personal information where possible."
     ]
   },
   {
-    title: "5. WhatsApp Connection Modes",
+    title: "5. WhatsApp and Third-Party Providers",
     body: [
-      "In QR Login Mode, ChatDora may exchange session and conversation data with an external WhatsApp engine used to establish and maintain the connected WhatsApp session.",
-      "In Official API Mode, ChatDora may exchange data with Meta WhatsApp Cloud API and related Meta infrastructure.",
-      "These integrations are necessary to connect, receive, route, and reply to WhatsApp messages through the selected connection mode."
+      "ChatDora may share necessary data with Meta, WhatsApp, hosting vendors, email providers, database providers, analytics or infrastructure vendors, and QR or session-handling technology providers as needed to deliver the service.",
+      "Those providers may process information under their own terms and privacy rules. We do not control all third-party processing once data enters their systems.",
+      "Third-party services may be located in different jurisdictions than you."
     ]
   },
   {
-    title: "6. Leads and CRM Data",
+    title: "6. Help Requests and Contact Forms",
     body: [
-      "When customer messages indicate buying intent, ChatDora may create lead records containing customer phone number, customer name when available, interest category, and the relevant message content.",
-      "Lead records are stored to help businesses follow up on customer inquiries and may be retained longer than operational message logs because they have ongoing CRM value."
+      "When you use the ChatDora help form or contact channels, we may collect your name, email address, page reference, issue description, and any additional information you choose to include.",
+      "We use this information to answer your request, troubleshoot your issue, maintain support history, and improve the service experience."
     ]
   },
   {
     title: "7. Data Retention",
     body: [
-      "ChatDora keeps only recent message logs needed for current dashboard operations and troubleshooting rather than storing unlimited chat history in the primary database.",
-      "Operational message history may be trimmed automatically on a rolling basis.",
-      "AI provider log retention may be disabled or heavily limited to reduce storage usage.",
-      "Duplicate lead or message records may be removed automatically as part of system cleanup and deduplication routines."
+      "We retain information for as long as reasonably necessary to operate the service, maintain security, comply with legal obligations, resolve disputes, and enforce agreements.",
+      "Operational message history may be limited, trimmed, deduplicated, or deleted on a rolling basis rather than stored forever.",
+      "Support requests, billing records, and key account data may be retained longer where reasonably needed for legitimate business, legal, fraud-prevention, or compliance purposes."
     ]
   },
   {
-    title: "8. Third-Party Services",
+    title: "8. Security",
     body: [
-      "We may rely on third-party service providers such as Supabase for database and authentication services, AI providers for reply generation, Meta for official WhatsApp API functionality, hosting providers for deployment, and a WhatsApp engine for QR-based connections.",
-      "These providers may process information as needed to deliver their part of the service.",
-      "Your use of those integrated services may also be subject to their own privacy policies and terms."
+      "We use reasonable administrative, technical, and operational safeguards intended to protect the information we store.",
+      "No method of transmission, storage, or online service is fully secure, and we cannot guarantee absolute security, perfect availability, or complete prevention of unauthorized access."
     ]
   },
   {
-    title: "9. Security",
+    title: "9. Your Responsibilities",
     body: [
-      "We use reasonable technical and operational measures to help protect account access, service credentials, and stored information.",
-      "However, no system is completely secure, and we cannot guarantee absolute security, uninterrupted availability, or complete protection against unauthorized access, misuse, or third-party failures."
+      "You are responsible for ensuring that your collection and use of customer information through ChatDora is lawful and properly disclosed to your customers.",
+      "You should only upload or process data through ChatDora when you have the right to do so and when the data is appropriate for your business workflow."
     ]
   },
   {
-    title: "10. Your Responsibilities",
+    title: "10. Your Choices",
     body: [
-      "You are responsible for configuring your business data correctly, using lawful contact and messaging practices, and obtaining any permissions or consents required to communicate with customers.",
-      "You should avoid storing or transmitting unnecessary sensitive data through the service unless you are satisfied that such use is legally appropriate for your business."
+      "You may update certain account and business information from the dashboard.",
+      "You may stop using ChatDora at any time, but some information may remain in backups, logs, support archives, billing records, or compliance records for legitimate business reasons."
     ]
   },
   {
-    title: "11. Your Choices",
+    title: "11. Children's Privacy",
     body: [
-      "You may update business settings, FAQs, bot behavior, and connection choices from the dashboard.",
-      "You may choose whether to use QR Login Mode or Official API Mode where available.",
-      "You may stop using the service at any time, though some retained operational or CRM records may remain for legitimate business, security, or compliance reasons."
+      "ChatDora is not directed to children, and we do not knowingly provide the service for use by children without appropriate legal authority.",
+      "If you believe a child has provided personal data through the service inappropriately, contact us so we can review the request."
     ]
   },
   {
-    title: "12. Changes to This Policy",
+    title: "12. International and Legal Disclosures",
     body: [
-      "We may update this Privacy Policy from time to time to reflect product changes, legal requirements, or operational needs.",
-      "Updated versions become effective when posted on this site unless stated otherwise."
+      "We may disclose information where required by law, regulation, court order, lawful request, fraud investigation, security need, or to protect the rights, safety, or property of ChatDora, our users, or others.",
+      "If ChatDora is involved in a merger, acquisition, restructuring, financing, or asset transfer, information may be transferred as part of that transaction subject to applicable law."
     ]
   },
   {
-    title: "13. Contact",
-    body: ["For privacy questions or requests related to this policy, contact us at contactus@chatdora.in or call 7622858519."]
+    title: "13. Policy Changes",
+    body: [
+      "We may update this Privacy Policy from time to time to reflect product, legal, operational, or vendor changes.",
+      "The revised version becomes effective when posted on the website unless we state a different effective date."
+    ]
+  },
+  {
+    title: "14. Contact",
+    body: [
+      `For privacy questions, support requests, or data-related concerns, email ${CHATDORA_CONTACT_EMAIL}, call ${CHATDORA_SUPPORT_PHONE}, or visit ${CHATDORA_WEBSITE}.`
+    ]
   }
 ];
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="min-h-screen bg-hero-grid">
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-6 md:px-6">
-        <header className="flex items-center justify-between rounded-[2rem] border border-border/60 bg-white/80 p-4 shadow-card backdrop-blur dark:bg-card/80">
-          <AppLogo />
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <Link href="/" className="text-sm font-medium text-muted-foreground transition hover:text-foreground">
-              Back to home
-            </Link>
-          </div>
-        </header>
-
-        <section className="flex-1 py-10">
-          <div className="mx-auto max-w-4xl space-y-8">
-            <div className="space-y-4 rounded-[2rem] border border-border/70 bg-card/80 p-7 shadow-card">
-              <Badge className="w-fit">ChatDora Legal</Badge>
-              <div className="space-y-3">
-                <h1 className="font-[var(--font-sora)] text-4xl font-semibold tracking-tight md:text-5xl">Privacy Policy</h1>
-                <p className="max-w-3xl text-base text-muted-foreground md:text-lg">
-                  This policy covers how ChatDora handles account data, business settings, recent message logs, lead records, QR session metadata, and AI-assisted reply processing.
-                </p>
-                <p className="text-sm text-muted-foreground">Effective date: May 29, 2026</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {sections.map((section) => (
-                <Card key={section.title}>
-                  <CardHeader>
-                    <CardTitle className="text-xl">{section.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 text-sm leading-7 text-muted-foreground md:text-base">
-                    {section.body.map((paragraph) => (
-                      <p key={paragraph}>{paragraph}</p>
-                    ))}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <PublicFooter />
+    <PublicPageShell
+      badge="ChatDora Legal"
+      title="Privacy Policy"
+      description="This policy explains what ChatDora collects, how it is used, when it is shared, and how support, WhatsApp, QR, and AI workflows affect your data."
+    >
+      <div className="space-y-3 text-sm text-muted-foreground">
+        <p>Effective date: June 2, 2026</p>
+        <p>This policy is intended for operational transparency and does not replace advice from a lawyer familiar with your exact jurisdiction and business model.</p>
       </div>
-    </main>
+
+      <div className="space-y-4">
+        {sections.map((section) => (
+          <Card key={section.title}>
+            <CardHeader>
+              <CardTitle className="text-xl">{section.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm leading-7 text-muted-foreground md:text-base">
+              {section.body.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </PublicPageShell>
   );
 }

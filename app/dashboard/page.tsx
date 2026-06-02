@@ -1,10 +1,12 @@
 import { Activity, AlertTriangle, Bot, MessageSquareText, PhoneCall, ScrollText } from "lucide-react";
+import { redirect } from "next/navigation";
 
 import { signOutAction } from "@/app/dashboard/actions";
 import { DashboardHeader, DashboardSignOut } from "@/components/dashboard/dashboard-shell";
 import { UpgradeCard } from "@/components/dashboard/upgrade-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getBusinessProfileCompletion } from "@/lib/business-onboarding";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getDashboardContext } from "@/lib/dashboard-data";
 
@@ -29,6 +31,12 @@ function uniqueByPhone<T extends { customer_phone: string }>(items: T[]) {
 
 export default async function DashboardPage() {
   const { business, stats, inboundCallbackHealth, qrLocalTestMode, user, plan } = await getDashboardContext();
+  const onboarding = getBusinessProfileCompletion(business);
+
+  if (!onboarding.isReadyForOverview) {
+    redirect("/dashboard/business?welcome=1");
+  }
+
   const supabase = getSupabaseAdmin();
   const [{ data: recentLeads }, { data: recentMessages }] = await Promise.all([
     supabase.from("leads").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
