@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getInboundCallbackHealth } from "@/lib/config";
+import { getInboundCallbackHealth, isBackgroundQrSyncEnabled } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { syncLocalQrBusiness } from "@/lib/whatsapp/localQrSync";
 
@@ -8,6 +8,7 @@ const SCHEDULER_INTERVAL_MS = 15000;
 
 declare global {
   var __chatdoraLocalQrSchedulerStarted__: boolean | undefined;
+  var __chatdoraLocalQrSchedulerTimer__: ReturnType<typeof setTimeout> | undefined;
 }
 
 async function runLocalQrSchedulerTick() {
@@ -46,10 +47,21 @@ export function startLocalQrScheduler() {
     return;
   }
 
+  if (!isBackgroundQrSyncEnabled()) {
+    return;
+  }
+
   globalThis.__chatdoraLocalQrSchedulerStarted__ = true;
 
-  void runLocalQrSchedulerTick();
-  setInterval(() => {
-    void runLocalQrSchedulerTick();
-  }, SCHEDULER_INTERVAL_MS);
+  const scheduleNextTick = () => {
+    globalThis.__chatdoraLocalQrSchedulerTimer__ = setTimeout(async () => {
+      try {
+        await runLocalQrSchedulerTick();
+      } finally {
+        scheduleNextTick();
+      }
+    }, SCHEDULER_INTERVAL_MS);
+  };
+
+  void runLocalQrSchedulerTick().finally(scheduleNextTick);
 }

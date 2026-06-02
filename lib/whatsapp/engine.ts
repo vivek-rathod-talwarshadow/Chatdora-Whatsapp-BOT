@@ -2,8 +2,68 @@ import "server-only";
 
 import { getWhatsAppEngineBaseUrl } from "@/lib/config";
 
+const DEFAULT_ENGINE_TIMEOUT_MS = 15000;
+
 export function getWorkspaceId(businessId: string) {
   return `workspace_${businessId}`;
+}
+
+function buildEngineUrl(path: string) {
+  return `${getWhatsAppEngineBaseUrl()}${path}`;
+}
+
+function normalizeEngineResponse(data: unknown) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return null;
+  }
+
+  const record = data as Record<string, unknown>;
+  const normalized: Record<string, unknown> = {};
+
+  if (typeof record.status === "string") {
+    normalized.status = record.status;
+  }
+
+  if (typeof record.phone === "string") {
+    normalized.phone = record.phone;
+  }
+
+  if (typeof record.phoneNumber === "string") {
+    normalized.phoneNumber = record.phoneNumber;
+  }
+
+  if (typeof record.connectedPhone === "string") {
+    normalized.connectedPhone = record.connectedPhone;
+  }
+
+  if (typeof record.error === "string") {
+    normalized.error = record.error;
+  }
+
+  if (typeof record.activeSessions === "number") {
+    normalized.activeSessions = record.activeSessions;
+  }
+
+  if (typeof record.uptime === "string" || typeof record.uptime === "number") {
+    normalized.uptime = record.uptime;
+  }
+
+  return normalized;
+}
+
+async function fetchEngine(path: string, init?: RequestInit) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_ENGINE_TIMEOUT_MS);
+
+  try {
+    return await fetch(buildEngineUrl(path), {
+      ...init,
+      signal: controller.signal,
+      cache: "no-store"
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function callWhatsAppEngine<T>(
@@ -21,10 +81,9 @@ export async function callWhatsAppEngine<T>(
     headers.set("Authorization", `Bearer ${dashboardToken}`);
   }
 
-  const response = await fetch(`${getWhatsAppEngineBaseUrl()}${path}`, {
+  const response = await fetchEngine(path, {
     ...init,
-    headers,
-    cache: "no-store"
+    headers
   });
 
   const text = await response.text();
@@ -45,13 +104,12 @@ export async function callWhatsAppEngine<T>(
 export async function getWhatsAppEngineHealth() {
   try {
     const dashboardToken = process.env.CHATDORA_DASHBOARD_TOKEN;
-    const response = await fetch(`${getWhatsAppEngineBaseUrl()}/health`, {
+    const response = await fetchEngine("/health", {
       headers: dashboardToken
         ? {
             Authorization: `Bearer ${dashboardToken}`
           }
-        : undefined,
-      cache: "no-store"
+        : undefined
     });
     const text = await response.text();
     let data: any = null;
@@ -164,4 +222,8 @@ export function getEngineConversations(data: Record<string, unknown> | null | un
   }
 
   return data.conversations as EngineConversation[];
+}
+
+export function getPersistableEngineStatus(data: unknown) {
+  return normalizeEngineResponse(data);
 }

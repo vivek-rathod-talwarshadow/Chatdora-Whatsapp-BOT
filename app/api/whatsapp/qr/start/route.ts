@@ -3,7 +3,14 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureWhatsAppConnection, setActiveConnectionMode, updateWhatsAppConnection } from "@/lib/whatsapp/connections";
-import { callWhatsAppEngine, getEngineConnectedPhone, getEngineQrCode, getWorkspaceId, mapEngineStatus } from "@/lib/whatsapp/engine";
+import {
+  callWhatsAppEngine,
+  getEngineConnectedPhone,
+  getEngineQrCode,
+  getPersistableEngineStatus,
+  getWorkspaceId,
+  mapEngineStatus
+} from "@/lib/whatsapp/engine";
 
 function mergeEngineStatus(
   existingStatus: unknown,
@@ -91,7 +98,7 @@ export async function POST(request: Request) {
       status,
       isActive: true,
       connectedPhone,
-      engineStatus: mergeEngineStatus(connection?.engine_status, engineResponse),
+      engineStatus: mergeEngineStatus(connection?.engine_status, getPersistableEngineStatus(engineResponse)),
       lastError: null,
       lastConnectedAt: status === "connected" ? new Date().toISOString() : null
     });

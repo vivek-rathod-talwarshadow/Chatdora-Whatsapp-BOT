@@ -8,6 +8,7 @@ import {
   getEngineConnectedPhone,
   getEngineConnectedPhoneFromConversations,
   getEngineQrCode,
+  getPersistableEngineStatus,
   getWorkspaceId,
   getWhatsAppEngineHealth,
   mapEngineStatus
@@ -95,7 +96,7 @@ export async function GET(request: Request) {
         status: connection.status === "connected" ? "disconnected" : "failed",
         isActive: connection?.is_active ?? false,
         connectedPhone: connection?.connected_phone ?? null,
-        engineStatus: mergeEngineStatus(connection?.engine_status, engineHealth?.data ?? null),
+        engineStatus: mergeEngineStatus(connection?.engine_status, getPersistableEngineStatus(engineHealth?.data)),
         lastError: engineError
       });
 
@@ -140,7 +141,7 @@ export async function GET(request: Request) {
       status,
       isActive: connection?.is_active ?? false,
       connectedPhone,
-      engineStatus: mergeEngineStatus(connection?.engine_status, engineResponse),
+      engineStatus: mergeEngineStatus(connection?.engine_status, getPersistableEngineStatus(engineResponse)),
       lastError: typeof engineResponse.error === "string" ? engineResponse.error : null,
       lastConnectedAt: status === "connected" ? new Date().toISOString() : connection?.last_connected_at ?? null
     });
@@ -152,7 +153,7 @@ export async function GET(request: Request) {
         workspace_id: workspaceId,
         status,
         connected_phone: connectedPhone,
-        engine_status: mergeEngineStatus(connection?.engine_status, engineResponse),
+        engine_status: mergeEngineStatus(connection?.engine_status, getPersistableEngineStatus(engineResponse)),
         last_error: typeof engineResponse.error === "string" ? engineResponse.error : null
       },
       activeMode: connection?.mode ?? null,

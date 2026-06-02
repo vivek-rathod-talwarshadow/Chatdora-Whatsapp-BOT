@@ -1,9 +1,34 @@
+function normalizeAppUrl(value: string | undefined) {
+  const trimmed = value?.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed.replace(/\/$/, "");
+  }
+
+  return `https://${trimmed.replace(/\/$/, "")}`;
+}
+
 export function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  return (
+    normalizeAppUrl(process.env.NEXT_PUBLIC_APP_URL) ||
+    normalizeAppUrl(process.env.RENDER_EXTERNAL_URL) ||
+    normalizeAppUrl(process.env.RENDER_PUBLIC_URL) ||
+    normalizeAppUrl(process.env.URL) ||
+    normalizeAppUrl(process.env.VERCEL_URL) ||
+    "http://localhost:3000"
+  );
 }
 
 export function getWhatsAppEngineBaseUrl() {
   return process.env.WHATSAPP_ENGINE_BASE_URL || "https://wa.chatdora.in";
+}
+
+export function isBackgroundQrSyncEnabled() {
+  return process.env.ENABLE_BACKGROUND_QR_SYNC === "true";
 }
 
 function isPrivateHostname(hostname: string) {
