@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { ensureWhatsAppConnection, updateWhatsAppConnection } from "@/lib/whatsapp/connections";
 
 export async function POST(request: Request) {
   try {
@@ -31,7 +32,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Business not found" }, { status: 404 });
     }
 
-    await adminSupabase.from("businesses").update({ bot_active: isActive }).eq("id", businessId).eq("user_id", user.id);
+    const { data: existingConnection } = await adminSupabase
+      .from("whatsapp_connections")
+      .select("mode")
+      .eq("business_id", businessId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existingConnection?.mode) {
+      await ensureWhatsAppConnection({
+        userId: user.id,
+        businessId,
+        mode: existingConnection.mode
+      });
+    }
+
+    await Promise.all([
+      adminSupabase.from("businesses").update({ bot_active: isActive }).eq("id", businessId).eq("user_id", user.id),
+      updateWhatsAppConnection({
+        businessId,
+        isActive
+      }).catch(() => undefined)
+    ]);
 
     return NextResponse.json({ ok: true });
   } catch (error) {
