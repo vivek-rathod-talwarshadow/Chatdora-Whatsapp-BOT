@@ -199,7 +199,7 @@ export function WhatsAppConnectionPanel({
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ businessId })
+        body: JSON.stringify({ businessId, forceRestart: true })
       });
       const data = await response.json();
 
@@ -208,8 +208,14 @@ export function WhatsAppConnectionPanel({
       }
 
       setQrCode(data.qr ?? null);
-      setIsQrOpen(true);
-      toast.success("Session restarted. Scan the QR if needed.");
+      setIsQrOpen(Boolean(data.qr));
+
+      if (data.needsReconnect) {
+        toast.error("This WhatsApp session is still active inside the engine. Log it out there first, then start QR again.");
+      } else {
+        toast.success("Session restarted. Scan the QR if needed.");
+      }
+
       await refreshStatus();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to restart session");

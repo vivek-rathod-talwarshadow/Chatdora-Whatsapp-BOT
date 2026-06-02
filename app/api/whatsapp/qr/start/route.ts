@@ -43,7 +43,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { businessId } = (await request.json()) as { businessId?: string };
+    const { businessId, forceRestart } = (await request.json()) as {
+      businessId?: string;
+      forceRestart?: boolean;
+    };
     if (!businessId) {
       return NextResponse.json({ error: "Missing businessId" }, { status: 400 });
     }
@@ -63,6 +66,24 @@ export async function POST(request: Request) {
     const connection = await ensureWhatsAppConnection({ userId: user.id, businessId, mode: "qr_login" });
     await setActiveConnectionMode({ businessId, userId: user.id, mode: "qr_login" });
     const callbackUrls = getInboundCallbackUrls();
+
+    if (forceRestart) {
+      const restartAttempts: Array<{ path: string; method: "POST" | "DELETE" }> = [
+        { path: `/sessions/${workspaceId}/logout`, method: "POST" },
+        { path: `/sessions/${workspaceId}/disconnect`, method: "POST" },
+        { path: `/sessions/${workspaceId}/restart`, method: "POST" },
+        { path: `/sessions/${workspaceId}`, method: "DELETE" }
+      ];
+
+      for (const attempt of restartAttempts) {
+        try {
+          await callWhatsAppEngine(attempt.path, { method: attempt.method });
+          break;
+        } catch {
+          // Try the next supported reset pattern if this one is unavailable.
+        }
+      }
+    }
 
     let engineResponse;
     try {
@@ -118,7 +139,8 @@ export async function POST(request: Request) {
       workspaceId,
       status,
       qr: qrCode,
-      connectedPhone
+      connectedPhone,
+      needsReconnect: Boolean(forceRestart && status === "connected" && !qrCode && !connectedPhone)
     });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to start QR session" }, { status: 500 });
