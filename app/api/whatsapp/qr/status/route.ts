@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import "@/lib/whatsapp/bootstrap";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureWhatsAppConnection, getConnectionWorkspaceId, updateWhatsAppConnection } from "@/lib/whatsapp/connections";

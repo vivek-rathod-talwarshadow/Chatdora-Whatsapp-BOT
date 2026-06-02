@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { getAppUrl } from "@/lib/config";
+import "@/lib/whatsapp/bootstrap";
 import "./globals.css";
 
 const appUrl = getAppUrl();
