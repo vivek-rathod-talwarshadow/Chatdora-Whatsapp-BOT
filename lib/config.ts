@@ -27,6 +27,21 @@ export function getWhatsAppEngineBaseUrl() {
   return process.env.WHATSAPP_ENGINE_BASE_URL || "https://wa.chatdora.in";
 }
 
+export function getWhatsAppEngineDashboardToken() {
+  const token = process.env.CHATDORA_DASHBOARD_TOKEN?.trim();
+
+  if (!token) {
+    return null;
+  }
+
+  const normalized = token.toLowerCase();
+  if (normalized === "value" || normalized === "generate" || normalized === "changeme") {
+    return null;
+  }
+
+  return token;
+}
+
 export function isBackgroundQrSyncEnabled() {
   return process.env.ENABLE_BACKGROUND_QR_SYNC === "true";
 }

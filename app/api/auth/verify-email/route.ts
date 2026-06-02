@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { consumeVerificationToken } from "@/lib/auth/email-verification";
+import { getAppUrl } from "@/lib/config";
 
 function buildRedirectUrl(status: "success" | "invalid" | "expired", email?: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const baseUrl = getAppUrl();
   const url = new URL("/verify-email", baseUrl);
   url.searchParams.set("status", status);
 

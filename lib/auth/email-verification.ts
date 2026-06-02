@@ -2,6 +2,7 @@ import "server-only";
 
 import crypto from "crypto";
 
+import { getAppUrl } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
@@ -24,7 +25,7 @@ function hashToken(token: string) {
 }
 
 function getPublicAppUrl() {
-  return (process.env.NEXT_PUBLIC_APP_URL?.trim() || "http://localhost:3000").replace(/\/$/, "");
+  return getAppUrl().replace(/\/$/, "");
 }
 
 function getVerificationUrl(token: string) {

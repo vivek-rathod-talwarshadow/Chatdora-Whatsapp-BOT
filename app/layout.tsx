@@ -4,9 +4,10 @@ import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
 import { ThemeProvider } from "@/components/layout/theme-provider";
+import { getAppUrl } from "@/lib/config";
 import "./globals.css";
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const appUrl = getAppUrl();
 
 const sora = Sora({
   subsets: ["latin"],

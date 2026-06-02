@@ -30,11 +30,11 @@ export default async function DashboardLayout({
     userId: user.id
   });
 
-  let appHostname = "localhost:3000";
+  let appHostname = "chatdora.in";
   try {
     appHostname = new URL(getAppUrl()).host;
   } catch {
-    appHostname = "localhost:3000";
+    appHostname = "chatdora.in";
   }
 
   return (

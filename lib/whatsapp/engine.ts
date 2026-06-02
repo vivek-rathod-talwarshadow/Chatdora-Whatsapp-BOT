@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getWhatsAppEngineBaseUrl } from "@/lib/config";
+import { getWhatsAppEngineBaseUrl, getWhatsAppEngineDashboardToken } from "@/lib/config";
 
 const DEFAULT_ENGINE_TIMEOUT_MS = 15000;
 
@@ -70,7 +70,7 @@ export async function callWhatsAppEngine<T>(
   path: string,
   init?: RequestInit
 ) {
-  const dashboardToken = process.env.CHATDORA_DASHBOARD_TOKEN;
+  const dashboardToken = getWhatsAppEngineDashboardToken();
 
   const headers = new Headers(init?.headers ?? {});
   if (!headers.has("Content-Type")) {
@@ -103,7 +103,7 @@ export async function callWhatsAppEngine<T>(
 
 export async function getWhatsAppEngineHealth() {
   try {
-    const dashboardToken = process.env.CHATDORA_DASHBOARD_TOKEN;
+    const dashboardToken = getWhatsAppEngineDashboardToken();
     const response = await fetchEngine("/health", {
       headers: dashboardToken
         ? {
