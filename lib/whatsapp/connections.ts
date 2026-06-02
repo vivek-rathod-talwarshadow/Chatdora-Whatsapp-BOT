@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { mapEngineStatus, getWorkspaceId } from "@/lib/whatsapp/engine";
+import { buildWorkspaceId, mapEngineStatus } from "@/lib/whatsapp/engine";
 import type { WhatsAppConnectionMode } from "@/lib/types";
 
 function getEngineStatusRecord(engineStatus: unknown) {
@@ -42,6 +42,24 @@ export function getRecentInboundMessageKeys(engineStatus: unknown) {
   }
 
   return keys.filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+}
+
+export function getConnectionWorkspaceId(
+  connection: { business_id?: string | null; workspace_id?: string | null } | null | undefined
+) {
+  if (connection?.workspace_id && connection.workspace_id.trim().length > 0) {
+    return connection.workspace_id.trim();
+  }
+
+  if (!connection?.business_id) {
+    return null;
+  }
+
+  return buildWorkspaceId(connection.business_id);
+}
+
+export function createRestartWorkspaceId(businessId: string) {
+  return buildWorkspaceId(businessId, Date.now().toString(36));
 }
 
 export async function markRecentInboundMessageKey(params: {
@@ -91,12 +109,12 @@ export async function ensureWhatsAppConnection(params: {
   mode: WhatsAppConnectionMode;
 }) {
   const supabase = getSupabaseAdmin();
-  const workspaceId = getWorkspaceId(params.businessId);
+  const workspaceId = buildWorkspaceId(params.businessId);
 
   const { data: existing, error: existingError } = await supabase
     .from("whatsapp_connections")
     .select("*")
-    .eq("workspace_id", workspaceId)
+    .eq("business_id", params.businessId)
     .maybeSingle();
 
   if (existingError) {
@@ -104,6 +122,21 @@ export async function ensureWhatsAppConnection(params: {
   }
 
   if (existing) {
+    if (!existing.workspace_id) {
+      const { data: updated, error: updateError } = await supabase
+        .from("whatsapp_connections")
+        .update({ workspace_id: workspaceId })
+        .eq("id", existing.id)
+        .select("*")
+        .single();
+
+      if (updateError || !updated) {
+        throw new Error(updateError?.message || "Unable to repair WhatsApp workspace");
+      }
+
+      return updated;
+    }
+
     return existing;
   }
 
@@ -132,6 +165,7 @@ export async function updateWhatsAppConnection(params: {
   mode?: WhatsAppConnectionMode;
   status?: string | null;
   isActive?: boolean;
+  workspaceId?: string | null;
   connectedPhone?: string | null;
   engineStatus?: unknown;
   lastError?: string | null;
@@ -152,6 +186,7 @@ export async function updateWhatsAppConnection(params: {
 
   if (params.status !== undefined) patch.status = mapEngineStatus(params.status);
   if (params.isActive !== undefined) patch.is_active = params.isActive;
+  if (params.workspaceId !== undefined) patch.workspace_id = params.workspaceId;
   if (params.connectedPhone !== undefined) patch.connected_phone = params.connectedPhone;
   if (params.engineStatus !== undefined) {
     patch.engine_status = mergeEngineStatus(currentConnection?.engine_status, params.engineStatus);

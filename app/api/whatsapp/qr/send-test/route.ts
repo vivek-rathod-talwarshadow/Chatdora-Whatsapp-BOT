@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getConnectionWorkspaceId } from "@/lib/whatsapp/connections";
 import { callWhatsAppEngine, getWorkspaceId } from "@/lib/whatsapp/engine";
 
 export async function POST(request: Request) {
@@ -37,7 +38,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Business not found" }, { status: 404 });
     }
 
-    const workspaceId = getWorkspaceId(businessId);
+    const { data: connection } = await adminSupabase
+      .from("whatsapp_connections")
+      .select("business_id, workspace_id")
+      .eq("business_id", businessId)
+      .maybeSingle();
+    const workspaceId = getConnectionWorkspaceId(connection) ?? getWorkspaceId(businessId);
     const response = await callWhatsAppEngine(`/sessions/${workspaceId}/send`, {
       method: "POST",
       body: JSON.stringify({ to, message })

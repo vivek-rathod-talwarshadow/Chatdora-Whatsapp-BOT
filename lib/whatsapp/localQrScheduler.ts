@@ -13,7 +13,7 @@ declare global {
 
 async function runLocalQrSchedulerTick() {
   const inboundCallbackHealth = getInboundCallbackHealth();
-  if (inboundCallbackHealth.isPublic) {
+  if (inboundCallbackHealth.isPublic && !isBackgroundQrSyncEnabled()) {
     return;
   }
 

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { ensureWhatsAppConnection, updateWhatsAppConnection } from "@/lib/whatsapp/connections";
+import { ensureWhatsAppConnection, getConnectionWorkspaceId, updateWhatsAppConnection } from "@/lib/whatsapp/connections";
 import {
   callWhatsAppEngine,
   getEngineConnectedPhone,
@@ -62,13 +62,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Business not found" }, { status: 404 });
     }
 
-    await ensureWhatsAppConnection({ userId: user.id, businessId, mode: "qr_login" });
-
-    const workspaceId = getWorkspaceId(businessId);
+    const ensuredConnection = await ensureWhatsAppConnection({ userId: user.id, businessId, mode: "qr_login" });
     const [{ data: connection }, engineHealth] = await Promise.all([
       adminSupabase.from("whatsapp_connections").select("*").eq("business_id", businessId).maybeSingle(),
       getWhatsAppEngineHealth(),
     ]);
+    const workspaceId = getConnectionWorkspaceId(connection ?? ensuredConnection) ?? getWorkspaceId(businessId);
 
     if (!connection || connection.mode !== "qr_login") {
       return NextResponse.json({

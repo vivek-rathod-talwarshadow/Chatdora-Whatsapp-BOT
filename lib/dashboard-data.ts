@@ -105,7 +105,7 @@ export async function getUserBusiness() {
     user,
     business,
     plan,
-    workspaceId: business?.id ? getWorkspaceId(business.id) : null,
+    workspaceId: qrConnection?.workspace_id ?? (business?.id ? getWorkspaceId(business.id) : null),
     qrConnection: qrConnection ?? null,
     officialSettings: officialSettings ?? null,
     engineHealth,

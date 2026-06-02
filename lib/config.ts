@@ -43,7 +43,13 @@ export function getWhatsAppEngineDashboardToken() {
 }
 
 export function isBackgroundQrSyncEnabled() {
-  return process.env.ENABLE_BACKGROUND_QR_SYNC === "true";
+  const value = process.env.ENABLE_BACKGROUND_QR_SYNC?.trim().toLowerCase();
+
+  if (!value) {
+    return false;
+  }
+
+  return !["false", "0", "off", "no"].includes(value);
 }
 
 function isPrivateHostname(hostname: string) {

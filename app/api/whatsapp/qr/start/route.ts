@@ -3,7 +3,13 @@ import { NextResponse } from "next/server";
 import { getInboundCallbackUrls } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { ensureWhatsAppConnection, setActiveConnectionMode, updateWhatsAppConnection } from "@/lib/whatsapp/connections";
+import {
+  createRestartWorkspaceId,
+  ensureWhatsAppConnection,
+  getConnectionWorkspaceId,
+  setActiveConnectionMode,
+  updateWhatsAppConnection
+} from "@/lib/whatsapp/connections";
 import {
   callWhatsAppEngine,
   getEngineConnectedPhone,
@@ -62,27 +68,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Business not found" }, { status: 404 });
     }
 
-    const workspaceId = getWorkspaceId(businessId);
     const connection = await ensureWhatsAppConnection({ userId: user.id, businessId, mode: "qr_login" });
     await setActiveConnectionMode({ businessId, userId: user.id, mode: "qr_login" });
     const callbackUrls = getInboundCallbackUrls();
+    let workspaceId = getConnectionWorkspaceId(connection) ?? getWorkspaceId(businessId);
 
     if (forceRestart) {
-      const restartAttempts: Array<{ path: string; method: "POST" | "DELETE" }> = [
-        { path: `/sessions/${workspaceId}/logout`, method: "POST" },
-        { path: `/sessions/${workspaceId}/disconnect`, method: "POST" },
-        { path: `/sessions/${workspaceId}/restart`, method: "POST" },
-        { path: `/sessions/${workspaceId}`, method: "DELETE" }
-      ];
-
-      for (const attempt of restartAttempts) {
-        try {
-          await callWhatsAppEngine(attempt.path, { method: attempt.method });
-          break;
-        } catch {
-          // Try the next supported reset pattern if this one is unavailable.
-        }
-      }
+      workspaceId = createRestartWorkspaceId(businessId);
+      await updateWhatsAppConnection({
+        businessId,
+        workspaceId,
+        status: "not_connected",
+        connectedPhone: null,
+        lastError: null,
+        lastConnectedAt: null
+      });
     }
 
     let engineResponse;
@@ -129,6 +129,7 @@ export async function POST(request: Request) {
       mode: "qr_login",
       status,
       isActive: true,
+      workspaceId,
       connectedPhone,
       engineStatus: mergeEngineStatus(connection?.engine_status, getPersistableEngineStatus(engineResponse)),
       lastError: null,
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
       status,
       qr: qrCode,
       connectedPhone,
-      needsReconnect: Boolean(forceRestart && status === "connected" && !qrCode && !connectedPhone)
+      needsReconnect: false
     });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to start QR session" }, { status: 500 });

@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import type { WhatsAppConnectionMode } from "@/lib/types";
+import { getConnectionWorkspaceId } from "@/lib/whatsapp/connections";
 import { callWhatsAppEngine, getWorkspaceId } from "@/lib/whatsapp/engine";
 import { sendWhatsAppMessage } from "@/lib/whatsapp/sendMessage";
 
@@ -15,7 +16,15 @@ export async function sendWhatsAppReply({
   message: string;
 }) {
   if (mode === "qr_login") {
-    await callWhatsAppEngine(`/sessions/${getWorkspaceId(businessId)}/send`, {
+    const supabase = getSupabaseAdmin();
+    const { data: connection } = await supabase
+      .from("whatsapp_connections")
+      .select("business_id, workspace_id")
+      .eq("business_id", businessId)
+      .maybeSingle();
+    const workspaceId = getConnectionWorkspaceId(connection) ?? getWorkspaceId(businessId);
+
+    await callWhatsAppEngine(`/sessions/${workspaceId}/send`, {
       method: "POST",
       body: JSON.stringify({
         phone: customerPhone,

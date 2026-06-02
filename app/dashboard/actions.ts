@@ -9,7 +9,7 @@ import { FREE_PLAN_NAME, PLUS_PLAN_NAME, PLUS_PLAN_PRICE_INR } from "@/lib/plans
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizePhoneNumber } from "@/lib/utils";
-import { ensureWhatsAppConnection, setActiveConnectionMode, setCustomerBotPaused } from "@/lib/whatsapp/connections";
+import { ensureWhatsAppConnection, getConnectionWorkspaceId, setActiveConnectionMode, setCustomerBotPaused } from "@/lib/whatsapp/connections";
 import { getWorkspaceId } from "@/lib/whatsapp/engine";
 
 async function getCurrentUser() {
@@ -299,10 +299,16 @@ export async function upsertWhatsAppSettingsAction(formData: FormData) {
     mode: "meta_api"
   });
 
+  const { data: connection } = await adminSupabase
+    .from("whatsapp_connections")
+    .select("business_id, workspace_id")
+    .eq("business_id", businessId)
+    .maybeSingle();
+
   await adminSupabase
     .from("whatsapp_connections")
     .update({
-      workspace_id: getWorkspaceId(businessId),
+      workspace_id: getConnectionWorkspaceId(connection) ?? getWorkspaceId(businessId),
       mode: "meta_api",
       status: isConnected ? "connected" : "not_connected",
       is_active: isConnected,

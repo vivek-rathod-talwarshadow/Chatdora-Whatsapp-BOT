@@ -2,8 +2,9 @@ import "server-only";
 
 import { consumeMonthlyMessageQuota } from "@/lib/billing";
 import { generateBotReply } from "@/lib/bot/botEngine";
-import { getInboundCallbackHealth } from "@/lib/config";
+import { getInboundCallbackHealth, isBackgroundQrSyncEnabled } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { getConnectionWorkspaceId } from "@/lib/whatsapp/connections";
 import { callWhatsAppEngine, getEngineConversations, getWorkspaceId, type EngineConversation, type EngineConversationMessage } from "@/lib/whatsapp/engine";
 import { buildInboundMessageReceiptKey, claimInboundMessageReceipt } from "@/lib/whatsapp/inboundReceipts";
 
@@ -148,7 +149,7 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
 
   try {
     const inboundCallbackHealth = getInboundCallbackHealth();
-    if (inboundCallbackHealth.isPublic) {
+    if (inboundCallbackHealth.isPublic && !isBackgroundQrSyncEnabled()) {
       return {
         ok: true,
         processed: 0,
@@ -196,7 +197,7 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
       };
     }
 
-    const workspaceId = getWorkspaceId(businessId);
+    const workspaceId = getConnectionWorkspaceId(connection) ?? getWorkspaceId(businessId);
     const engineData = await callWhatsAppEngine<Record<string, unknown>>(`/sessions/${workspaceId}/conversations`);
     const conversations = getEngineConversations(engineData);
     const processedIds = new Set(normalizeProcessedMessageIds(connection.engine_status));

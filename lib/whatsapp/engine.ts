@@ -4,8 +4,13 @@ import { getWhatsAppEngineBaseUrl, getWhatsAppEngineDashboardToken } from "@/lib
 
 const DEFAULT_ENGINE_TIMEOUT_MS = 15000;
 
+export function buildWorkspaceId(businessId: string, suffix?: string | null) {
+  const base = `workspace_${businessId}`;
+  return suffix ? `${base}_${suffix}` : base;
+}
+
 export function getWorkspaceId(businessId: string) {
-  return `workspace_${businessId}`;
+  return buildWorkspaceId(businessId);
 }
 
 function buildEngineUrl(path: string) {
