@@ -46,7 +46,7 @@ export function isBackgroundQrSyncEnabled() {
   const value = process.env.ENABLE_BACKGROUND_QR_SYNC?.trim().toLowerCase();
 
   if (!value) {
-    return false;
+    return true;
   }
 
   return !["false", "0", "off", "no"].includes(value);
