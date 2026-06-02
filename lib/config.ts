@@ -76,6 +76,7 @@ function isPrivateHostname(hostname: string) {
 
 export function getInboundCallbackHealth() {
   const appUrl = getAppUrl();
+  const primaryCallbackUrl = `${appUrl.replace(/\/$/, "")}/api/inbound-message`;
 
   try {
     const parsed = new URL(appUrl);
@@ -83,7 +84,7 @@ export function getInboundCallbackHealth() {
 
     return {
       appUrl,
-      callbackUrl: `${appUrl.replace(/\/$/, "")}/api/inbound-message`,
+      callbackUrl: primaryCallbackUrl,
       isPublic,
       reason: isPublic
         ? null
@@ -92,9 +93,18 @@ export function getInboundCallbackHealth() {
   } catch {
     return {
       appUrl,
-      callbackUrl: `${appUrl.replace(/\/$/, "")}/api/inbound-message`,
+      callbackUrl: primaryCallbackUrl,
       isPublic: false,
       reason: "NEXT_PUBLIC_APP_URL is invalid, so inbound WhatsApp replies cannot be delivered."
     };
   }
+}
+
+export function getInboundCallbackUrls() {
+  const appUrl = getAppUrl().replace(/\/$/, "");
+
+  return {
+    primary: `${appUrl}/api/inbound-message`,
+    legacy: `${appUrl}/Whatsapp-web-bot/api/inbound-message/`
+  };
 }

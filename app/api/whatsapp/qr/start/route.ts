@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { getInboundCallbackUrls } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureWhatsAppConnection, setActiveConnectionMode, updateWhatsAppConnection } from "@/lib/whatsapp/connections";
@@ -61,12 +62,22 @@ export async function POST(request: Request) {
     const workspaceId = getWorkspaceId(businessId);
     const connection = await ensureWhatsAppConnection({ userId: user.id, businessId, mode: "qr_login" });
     await setActiveConnectionMode({ businessId, userId: user.id, mode: "qr_login" });
+    const callbackUrls = getInboundCallbackUrls();
 
     let engineResponse;
     try {
       engineResponse = await callWhatsAppEngine<Record<string, unknown>>(
         `/sessions/${workspaceId}/start`,
-        { method: "POST" }
+        {
+          method: "POST",
+          body: JSON.stringify({
+            callbackUrl: callbackUrls.primary,
+            inboundCallbackUrl: callbackUrls.primary,
+            webhookUrl: callbackUrls.primary,
+            legacyCallbackUrl: callbackUrls.legacy,
+            workspaceId
+          })
+        }
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to start QR session";
