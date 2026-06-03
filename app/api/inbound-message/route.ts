@@ -54,7 +54,17 @@ function normalizeCustomerPhone(value: string) {
   return value.replace(/@.+$/, "").trim();
 }
 
-function extractIncomingText(record: Record<string, unknown>) {
+function extractIncomingText(record: Record<string, unknown>): string {
+  const nestedMessage = asRecord(record.message);
+  const ephemeralMessage = asRecord(record.ephemeralMessage);
+  const ephemeralNestedMessage = asRecord(asRecord(ephemeralMessage?.message)?.message);
+  const viewOnceMessage = asRecord(record.viewOnceMessage);
+  const viewOnceNestedMessage = asRecord(asRecord(viewOnceMessage?.message)?.message);
+  const viewOnceMessageV2 = asRecord(record.viewOnceMessageV2);
+  const viewOnceMessageV2NestedMessage = asRecord(asRecord(viewOnceMessageV2?.message)?.message);
+  const viewOnceMessageV2Extension = asRecord(record.viewOnceMessageV2Extension);
+  const viewOnceMessageV2ExtensionNestedMessage = asRecord(asRecord(viewOnceMessageV2Extension?.message)?.message);
+
   const directText = pickFirstString(record, [
     ["message"],
     ["text"],
@@ -72,11 +82,35 @@ function extractIncomingText(record: Record<string, unknown>) {
     ["data", "text"],
     ["data", "body"],
     ["payload", "text"],
-    ["payload", "body"]
+    ["payload", "body"],
+    ["imageMessage", "caption"],
+    ["videoMessage", "caption"],
+    ["documentWithCaptionMessage", "message", "documentMessage", "caption"],
+    ["buttonsResponseMessage", "selectedDisplayText"],
+    ["listResponseMessage", "title"],
+    ["listResponseMessage", "singleSelectReply", "selectedRowId"],
+    ["templateButtonReplyMessage", "selectedDisplayText"]
   ]);
 
   if (directText) {
     return directText;
+  }
+
+  for (const candidate of [
+    nestedMessage,
+    ephemeralNestedMessage,
+    viewOnceNestedMessage,
+    viewOnceMessageV2NestedMessage,
+    viewOnceMessageV2ExtensionNestedMessage
+  ]) {
+    if (!candidate) {
+      continue;
+    }
+
+    const nestedText: string = extractIncomingText(candidate);
+    if (nestedText) {
+      return nestedText;
+    }
   }
 
   return "";
@@ -96,6 +130,11 @@ function getInboundPayloadCandidates(body: Record<string, unknown>) {
 
   for (const key of ["payload", "data", "event", "message", "msg"]) {
     appendCandidate(body[key]);
+  }
+
+  for (const wrapperKey of ["ephemeralMessage", "viewOnceMessage", "viewOnceMessageV2", "viewOnceMessageV2Extension"]) {
+    const wrapper = asRecord(body[wrapperKey]);
+    appendCandidate(wrapper?.message);
   }
 
   for (const key of ["messages", "events", "entries"]) {
@@ -136,10 +175,13 @@ export async function POST(request: Request) {
             ["customerPhone"],
             ["from"],
             ["phone"],
+            ["sender"],
+            ["participant"],
             ["remoteJid"],
             ["chat_id"],
             ["chatId"],
             ["key", "remoteJid"],
+            ["key", "participant"],
             ["data", "from"],
             ["payload", "from"]
           ])

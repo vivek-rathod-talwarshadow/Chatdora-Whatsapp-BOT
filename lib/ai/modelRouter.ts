@@ -3,9 +3,20 @@ import type { AIMessage } from "@/lib/types";
 const SAFE_FALLBACK =
   "Thanks for your message. Our team will reply shortly. Please share your name and requirement.";
 
+function getEnvValue(...names: string[]) {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 const CANDIDATES = [
-  ["openrouter", "x-ai/grok-beta", "https://openrouter.ai/api/v1", "OPROUTER_API_KEY"],
-  ["openrouter", "openai/gpt-4o-mini", "https://openrouter.ai/api/v1", "OPROUTER_API_KEY"],
+  ["openrouter", "x-ai/grok-beta", "https://openrouter.ai/api/v1", ["OPENROUTER_API_KEY", "OPROUTER_API_KEY"]],
+  ["openrouter", "openai/gpt-4o-mini", "https://openrouter.ai/api/v1", ["OPENROUTER_API_KEY", "OPROUTER_API_KEY"]],
   ["groq", "llama-3.3-70b-versatile", "https://api.groq.com/openai/v1", "GROQ_API_KEY"],
   ["groq", "llama-3.1-8b-instant", "https://api.groq.com/openai/v1", "GROQ_API_KEY"],
   ["huggingface", "microsoft/Phi-3-mini-4k-instruct", "https://api-inference.huggingface.co/v1", "HUGGINGFACE_TOKEN"]
@@ -131,12 +142,13 @@ export async function callHuggingFaceModel(model: string, apiKey: string, messag
 }
 
 async function callWithCandidates(
-  candidates: readonly (readonly [string, string, string, string])[],
+  candidates: readonly (readonly [string, string, string, string | readonly string[]])[],
   messages: AIMessage[],
   options?: FallbackOptions
 ) {
   for (const [provider, model, baseUrl, apiKeyName] of candidates) {
-    const apiKey = process.env[apiKeyName];
+    const envNames = Array.isArray(apiKeyName) ? [...apiKeyName] : [apiKeyName];
+    const apiKey = getEnvValue(...envNames);
 
     if (!apiKey) {
       await logAIResult({
@@ -145,7 +157,7 @@ async function callWithCandidates(
         provider,
         model,
         status: "skipped",
-        error: `Missing env: ${apiKeyName}`
+        error: `Missing env: ${envNames.join(" or ")}`
       });
       continue;
     }
