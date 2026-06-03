@@ -39,6 +39,7 @@ Set:
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 WHATSAPP_ENGINE_BASE_URL=https://wa.chatdora.in
 CHATDORA_DASHBOARD_TOKEN=
+ENABLE_BACKGROUND_QR_SYNC=false
 
 SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_URL=
@@ -66,6 +67,8 @@ WHATSAPP_ENGINE_BASE_URL=http://127.0.0.1:3001
 ```
 
 `CHATDORA_DASHBOARD_TOKEN` is optional right now if your WhatsApp Engine does not enforce server-to-server auth yet. If you later add engine auth, set the same token in both services.
+
+`ENABLE_BACKGROUND_QR_SYNC` should stay `false` in production Render deployments. Turn it on only for local or private callback setups where the engine cannot reach `/api/inbound-message` directly.
 
 ## Supabase setup
 

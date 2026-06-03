@@ -33,6 +33,34 @@ function mergeEngineStatus(
   return nextStatus;
 }
 
+function getEngineStatusRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function getLastConnectedPhoneLookupAt(engineStatus: unknown) {
+  const record = getEngineStatusRecord(engineStatus);
+  return record && typeof record.connected_phone_lookup_at === "string"
+    ? record.connected_phone_lookup_at
+    : null;
+}
+
+function shouldRefreshConnectedPhoneFromConversations(engineStatus: unknown) {
+  const lastLookupAt = getLastConnectedPhoneLookupAt(engineStatus);
+
+  if (!lastLookupAt) {
+    return true;
+  }
+
+  const lastLookupMs = new Date(lastLookupAt).getTime();
+  if (!Number.isFinite(lastLookupMs) || lastLookupMs <= 0) {
+    return true;
+  }
+
+  return Date.now() - lastLookupMs >= 30 * 60 * 1000;
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -126,8 +154,11 @@ export async function GET(request: Request) {
             : "not_connected"
     );
 
-    if (!connectedPhone && status === "connected") {
+    let connectedPhoneLookupAttemptedAt: string | null = null;
+
+    if (!connectedPhone && status === "connected" && shouldRefreshConnectedPhoneFromConversations(connection?.engine_status)) {
       try {
+        connectedPhoneLookupAttemptedAt = new Date().toISOString();
         const conversationsResponse = await callWhatsAppEngine<Record<string, unknown>>(`/sessions/${workspaceId}/conversations`);
         connectedPhone = getEngineConnectedPhoneFromConversations(conversationsResponse);
       } catch {
@@ -141,7 +172,10 @@ export async function GET(request: Request) {
       status,
       isActive: connection?.is_active ?? false,
       connectedPhone,
-      engineStatus: mergeEngineStatus(connection?.engine_status, getPersistableEngineStatus(engineResponse)),
+      engineStatus: mergeEngineStatus(connection?.engine_status, {
+        ...(getPersistableEngineStatus(engineResponse) ?? {}),
+        ...(connectedPhoneLookupAttemptedAt ? { connected_phone_lookup_at: connectedPhoneLookupAttemptedAt } : {})
+      }),
       lastError: typeof engineResponse.error === "string" ? engineResponse.error : null,
       lastConnectedAt: status === "connected" ? new Date().toISOString() : connection?.last_connected_at ?? null
     });
@@ -153,7 +187,10 @@ export async function GET(request: Request) {
         workspace_id: workspaceId,
         status,
         connected_phone: connectedPhone,
-        engine_status: mergeEngineStatus(connection?.engine_status, getPersistableEngineStatus(engineResponse)),
+        engine_status: mergeEngineStatus(connection?.engine_status, {
+          ...(getPersistableEngineStatus(engineResponse) ?? {}),
+          ...(connectedPhoneLookupAttemptedAt ? { connected_phone_lookup_at: connectedPhoneLookupAttemptedAt } : {})
+        }),
         last_error: typeof engineResponse.error === "string" ? engineResponse.error : null
       },
       activeMode: connection?.mode ?? null,

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getInboundCallbackHealth, isBackgroundQrSyncEnabled } from "@/lib/config";
+import { shouldRunBackgroundQrSync } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { syncLocalQrBusiness } from "@/lib/whatsapp/localQrSync";
 
@@ -12,8 +12,7 @@ declare global {
 }
 
 async function runLocalQrSchedulerTick() {
-  const inboundCallbackHealth = getInboundCallbackHealth();
-  if (inboundCallbackHealth.isPublic && !isBackgroundQrSyncEnabled()) {
+  if (!shouldRunBackgroundQrSync()) {
     return;
   }
 
@@ -47,7 +46,7 @@ export function startLocalQrScheduler() {
     return;
   }
 
-  if (!isBackgroundQrSyncEnabled()) {
+  if (!shouldRunBackgroundQrSync()) {
     return;
   }
 

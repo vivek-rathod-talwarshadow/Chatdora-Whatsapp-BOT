@@ -46,10 +46,20 @@ export function isBackgroundQrSyncEnabled() {
   const value = process.env.ENABLE_BACKGROUND_QR_SYNC?.trim().toLowerCase();
 
   if (!value) {
-    return true;
+    return false;
   }
 
   return !["false", "0", "off", "no"].includes(value);
+}
+
+export function shouldRunBackgroundQrSync() {
+  const inboundCallbackHealth = getInboundCallbackHealth();
+
+  if (inboundCallbackHealth.isPublic) {
+    return false;
+  }
+
+  return isBackgroundQrSyncEnabled();
 }
 
 function isPrivateHostname(hostname: string) {
