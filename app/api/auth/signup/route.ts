@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import {
   buildVerificationEmail,
   createOrRefreshVerificationToken,
-  findAuthUserByEmail
+  findAuthUserByEmail,
+  getVerificationResendCooldown
 } from "@/lib/auth/email-verification";
 import { sendEmail } from "@/lib/email/smtp";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -62,6 +63,22 @@ export async function POST(request: Request) {
         }
       };
     } else {
+      const retryAfterSeconds = await getVerificationResendCooldown(user.id);
+      if (retryAfterSeconds > 0) {
+        return NextResponse.json(
+          {
+            error: `Please wait ${retryAfterSeconds} seconds before sending another verification email.`,
+            retryAfterSeconds
+          },
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(retryAfterSeconds)
+            }
+          }
+        );
+      }
+
       const { error: updateUserError } = await admin.auth.admin.updateUserById(user.id, {
         password,
         user_metadata: {
@@ -108,6 +125,7 @@ export async function POST(request: Request) {
       message: "Account created. Check your inbox to verify your email.",
       email,
       messageId: delivery.messageId,
+      retryAfterSeconds: 60,
       preview_token: process.env.NODE_ENV === "development" ? rawToken : undefined
     });
   } catch (error) {

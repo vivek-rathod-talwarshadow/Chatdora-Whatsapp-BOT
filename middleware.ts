@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+import { parseAppSessionValue } from "@/lib/auth/session-token";
+
 export async function middleware(request: NextRequest) {
+  const appSessionUser = await parseAppSessionValue(request.cookies.get("chatdora_app_session")?.value);
   let response = NextResponse.next({
     request
   });
@@ -33,8 +36,9 @@ export async function middleware(request: NextRequest) {
   );
 
   const {
-    data: { user }
+    data: { user: supabaseUser }
   } = await supabase.auth.getUser();
+  const user = appSessionUser ?? supabaseUser;
 
   const isAuthRoute =
     request.nextUrl.pathname === "/login" ||

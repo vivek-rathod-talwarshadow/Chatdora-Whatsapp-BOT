@@ -4,12 +4,12 @@ import type { ReactNode } from "react";
 
 import { signOutAction } from "@/app/dashboard/actions";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getBusinessProfileCompletion } from "@/lib/business-onboarding";
 import { isOwnerSuperAdminEmail } from "@/lib/admin";
 import { getAppUrl } from "@/lib/config";
 import { getPlanSummaryForBusiness } from "@/lib/billing";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   robots: {
@@ -27,10 +27,7 @@ export default async function DashboardLayout({
 }: {
   children: ReactNode;
 }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");

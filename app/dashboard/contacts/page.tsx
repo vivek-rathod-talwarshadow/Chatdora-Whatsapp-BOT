@@ -8,10 +8,10 @@ import { SubmitButton } from "@/components/forms/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getPausedCustomerPhones } from "@/lib/whatsapp/connections";
 import { getPlanSummaryForBusiness } from "@/lib/billing";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function formatTimestamp(value: string | null | undefined) {
   if (!value) {
@@ -85,10 +85,7 @@ export default async function ContactsPage({
     leads?: string;
   };
 }) {
-  const authSupabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await authSupabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     throw new Error("Unauthorized");

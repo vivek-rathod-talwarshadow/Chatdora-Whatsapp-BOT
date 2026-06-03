@@ -5,6 +5,7 @@ import {
   updateAccountPasswordAction,
   updateAccountProfileAction
 } from "@/app/dashboard/actions";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getPlanSummaryForBusiness } from "@/lib/billing";
 import { PLUS_PLAN_PRICE_INR, UPGRADE_CONTACT_URL } from "@/lib/plans";
 import { DashboardHeader } from "@/components/dashboard/dashboard-shell";
@@ -16,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatIndianCurrency } from "@/lib/utils";
 
 export default async function AccountPage({
@@ -24,11 +24,8 @@ export default async function AccountPage({
 }: {
   searchParams?: Record<string, string | string[] | undefined>;
 }) {
-  const authSupabase = await createSupabaseServerClient();
   const adminSupabase = getSupabaseAdmin();
-  const {
-    data: { user }
-  } = await authSupabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     throw new Error("Unauthorized");

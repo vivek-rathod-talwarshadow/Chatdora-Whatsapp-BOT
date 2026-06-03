@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import {
   buildVerificationEmail,
   createOrRefreshVerificationToken,
-  findAuthUserByEmail
+  findAuthUserByEmail,
+  getVerificationResendCooldown
 } from "@/lib/auth/email-verification";
 import { sendEmail } from "@/lib/email/smtp";
 
@@ -34,6 +35,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "This email is already verified. Please log in." }, { status: 409 });
     }
 
+    const retryAfterSeconds = await getVerificationResendCooldown(user.id);
+    if (retryAfterSeconds > 0) {
+      return NextResponse.json(
+        {
+          error: `Please wait ${retryAfterSeconds} seconds before resending the verification email.`,
+          retryAfterSeconds
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(retryAfterSeconds)
+          }
+        }
+      );
+    }
+
     const { verificationUrl } = await createOrRefreshVerificationToken(user.id, email);
     const emailContent = buildVerificationEmail({
       fullName: user.user_metadata?.full_name,
@@ -53,7 +70,11 @@ export async function POST(request: Request) {
       messageId: delivery.messageId
     });
 
-    return NextResponse.json({ message: "Verification email sent.", messageId: delivery.messageId });
+    return NextResponse.json({
+      message: "Verification email sent.",
+      messageId: delivery.messageId,
+      retryAfterSeconds: 60
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to resend verification email.";
     return NextResponse.json({ error: message }, { status: 500 });

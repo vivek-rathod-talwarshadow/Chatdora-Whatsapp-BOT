@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireOwnerSuperAdmin } from "@/lib/admin";
+import { clearAppSessionCookieStore } from "@/lib/auth/app-session";
+import { getCurrentUser as getAuthenticatedUser } from "@/lib/auth/current-user";
 import { canAccessLockedFeature, getPlanSummaryForBusiness } from "@/lib/billing";
 import { FREE_PLAN_NAME, PLUS_PLAN_NAME, PLUS_PLAN_PRICE_INR } from "@/lib/plans";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -12,17 +14,14 @@ import { normalizePhoneNumber } from "@/lib/utils";
 import { ensureWhatsAppConnection, getConnectionWorkspaceId, setActiveConnectionMode, setCustomerBotPaused } from "@/lib/whatsapp/connections";
 import { getWorkspaceId } from "@/lib/whatsapp/engine";
 
-async function getCurrentUser() {
-  const authSupabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await authSupabase.auth.getUser();
+async function getCurrentUserContext() {
+  const user = await getAuthenticatedUser();
 
   if (!user) {
     throw new Error("Unauthorized");
   }
 
-  return { authSupabase, adminSupabase: getSupabaseAdmin(), user };
+  return { adminSupabase: getSupabaseAdmin(), user };
 }
 
 async function requirePlusFeature(params: {
@@ -42,19 +41,27 @@ async function requirePlusFeature(params: {
 }
 
 async function getOwnerSuperAdmin() {
-  const context = await getCurrentUser();
+  const context = await getCurrentUserContext();
   requireOwnerSuperAdmin(context.user.email);
   return context;
 }
 
 export async function signOutAction() {
-  const { authSupabase } = await getCurrentUser();
-  await authSupabase.auth.signOut();
+  await getCurrentUserContext();
+  clearAppSessionCookieStore();
+
+  try {
+    const authSupabase = await createSupabaseServerClient();
+    await authSupabase.auth.signOut();
+  } catch {
+    // Ignore missing Supabase sessions for first-party Google logins.
+  }
+
   redirect("/login");
 }
 
 export async function updateAccountProfileAction(formData: FormData) {
-  const { authSupabase, adminSupabase, user } = await getCurrentUser();
+  const { adminSupabase, user } = await getCurrentUserContext();
   const fullName = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const phone = normalizePhoneNumber(String(formData.get("phone") ?? "")) || null;
@@ -73,9 +80,9 @@ export async function updateAccountProfileAction(formData: FormData) {
 
   const currentMeta = user.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
   const shouldUpdateEmail = Boolean(email) && email !== user.email;
-  const { error: authError } = await authSupabase.auth.updateUser({
+  const { error: authError } = await adminSupabase.auth.admin.updateUserById(user.id, {
     ...(shouldUpdateEmail ? { email } : {}),
-    data: {
+    user_metadata: {
       ...currentMeta,
       full_name: fullName || null
     }
@@ -91,7 +98,7 @@ export async function updateAccountProfileAction(formData: FormData) {
 }
 
 export async function updateAccountPasswordAction(formData: FormData) {
-  const { authSupabase } = await getCurrentUser();
+  const { adminSupabase, user } = await getCurrentUserContext();
   const password = String(formData.get("password") ?? "");
   const confirmPassword = String(formData.get("confirm_password") ?? "");
 
@@ -103,7 +110,7 @@ export async function updateAccountPasswordAction(formData: FormData) {
     redirect("/dashboard/account?error=Passwords%20do%20not%20match");
   }
 
-  const { error } = await authSupabase.auth.updateUser({ password });
+  const { error } = await adminSupabase.auth.admin.updateUserById(user.id, { password });
   if (error) {
     redirect(`/dashboard/account?error=${encodeURIComponent(error.message)}`);
   }
@@ -112,19 +119,27 @@ export async function updateAccountPasswordAction(formData: FormData) {
 }
 
 export async function deleteAccountAction() {
-  const { authSupabase, adminSupabase, user } = await getCurrentUser();
+  const { adminSupabase, user } = await getCurrentUserContext();
 
   const { error } = await adminSupabase.auth.admin.deleteUser(user.id);
   if (error) {
     redirect(`/dashboard/account?error=${encodeURIComponent(error.message)}`);
   }
 
-  await authSupabase.auth.signOut();
+  clearAppSessionCookieStore();
+
+  try {
+    const authSupabase = await createSupabaseServerClient();
+    await authSupabase.auth.signOut();
+  } catch {
+    // Ignore missing Supabase sessions for first-party Google logins.
+  }
+
   redirect("/");
 }
 
 export async function upsertBusinessAction(formData: FormData) {
-  const { adminSupabase, user } = await getCurrentUser();
+  const { adminSupabase, user } = await getCurrentUserContext();
   const businessId = String(formData.get("id") ?? "");
 
   const payload = {
@@ -188,7 +203,7 @@ export async function upsertBusinessAction(formData: FormData) {
 }
 
 export async function upsertFaqAction(formData: FormData) {
-  const { adminSupabase, user } = await getCurrentUser();
+  const { adminSupabase, user } = await getCurrentUserContext();
   const businessId = String(formData.get("business_id") ?? "");
   const faqId = String(formData.get("id") ?? "");
   const keywords = String(formData.get("keywords") ?? "")
@@ -239,7 +254,7 @@ export async function upsertFaqAction(formData: FormData) {
 }
 
 export async function deleteFaqAction(formData: FormData) {
-  const { adminSupabase, user } = await getCurrentUser();
+  const { adminSupabase, user } = await getCurrentUserContext();
   const faqId = String(formData.get("id") ?? "");
   const { data: business } = await adminSupabase.from("businesses").select("id").eq("user_id", user.id).maybeSingle();
 
@@ -268,7 +283,7 @@ export async function deleteFaqAction(formData: FormData) {
 }
 
 export async function upsertWhatsAppSettingsAction(formData: FormData) {
-  const { adminSupabase, user } = await getCurrentUser();
+  const { adminSupabase, user } = await getCurrentUserContext();
   const businessId = String(formData.get("business_id") ?? "");
   const settingsId = String(formData.get("id") ?? "");
   const isConnected = formData.get("is_connected") === "on";
@@ -331,7 +346,7 @@ export async function upsertWhatsAppSettingsAction(formData: FormData) {
 }
 
 export async function updateAISettingsAction(formData: FormData) {
-  const { adminSupabase, user } = await getCurrentUser();
+  const { adminSupabase, user } = await getCurrentUserContext();
   const businessId = String(formData.get("business_id") ?? "");
 
   await adminSupabase
@@ -353,7 +368,7 @@ export async function updateAISettingsAction(formData: FormData) {
 }
 
 export async function updateLeadStatusAction(formData: FormData) {
-  const { adminSupabase, user } = await getCurrentUser();
+  const { adminSupabase, user } = await getCurrentUserContext();
   const leadId = String(formData.get("id") ?? "");
   const { data: business } = await adminSupabase.from("businesses").select("id").eq("user_id", user.id).maybeSingle();
 
@@ -380,7 +395,7 @@ export async function updateLeadStatusAction(formData: FormData) {
 }
 
 export async function setBusinessBotActiveAction(formData: FormData) {
-  const { adminSupabase, user } = await getCurrentUser();
+  const { adminSupabase, user } = await getCurrentUserContext();
   const businessId = String(formData.get("business_id") ?? "");
   const botActive = formData.get("bot_active") === "on";
 
@@ -402,7 +417,7 @@ export async function setBusinessBotActiveAction(formData: FormData) {
 }
 
 export async function toggleCustomerBotPauseAction(formData: FormData) {
-  const { user } = await getCurrentUser();
+  const { user } = await getCurrentUserContext();
   const businessId = String(formData.get("business_id") ?? "");
   const customerPhone = String(formData.get("customer_phone") ?? "");
   const shouldPause = formData.get("should_pause") === "true";

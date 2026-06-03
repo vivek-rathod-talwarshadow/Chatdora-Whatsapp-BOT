@@ -2,18 +2,15 @@ import "server-only";
 
 import { subDays } from "date-fns";
 
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getPlanSummaryForBusiness } from "@/lib/billing";
 import { getInboundCallbackHealth } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getWhatsAppEngineHealth, getWorkspaceId } from "@/lib/whatsapp/engine";
 
 export async function getDashboardContext() {
-  const authSupabase = await createSupabaseServerClient();
   const supabase = getSupabaseAdmin();
-  const {
-    data: { user }
-  } = await authSupabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     throw new Error("Unauthorized");
@@ -77,11 +74,8 @@ export async function getDashboardContext() {
 }
 
 export async function getUserBusiness() {
-  const authSupabase = await createSupabaseServerClient();
   const supabase = getSupabaseAdmin();
-  const {
-    data: { user }
-  } = await authSupabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     throw new Error("Unauthorized");

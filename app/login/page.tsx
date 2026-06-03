@@ -31,7 +31,7 @@ function getStatusCopy(searchParams?: LoginPageProps["searchParams"]) {
     };
   }
 
-  if (searchParams?.error === "oauth") {
+  if (searchParams?.error === "oauth" || searchParams?.error === "google_oauth") {
     return {
       badge: "Login issue",
       message: "Google login could not be completed. Please try again."

@@ -1,5 +1,6 @@
 import { deleteUserAsSuperAdminAction, updateSubscriptionPlanAsSuperAdminAction } from "@/app/dashboard/actions";
 import { requireOwnerSuperAdmin } from "@/lib/admin";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { DashboardHeader } from "@/components/dashboard/dashboard-shell";
 import { SubmitButton } from "@/components/forms/submit-button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { FREE_PLAN_NAME, PLUS_PLAN_NAME } from "@/lib/plans";
 
 function formatTimestamp(value: string | null | undefined) {
@@ -21,10 +21,7 @@ export default async function SuperAdminPage({
 }: {
   searchParams?: { saved?: string; error?: string };
 }) {
-  const authSupabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await authSupabase.auth.getUser();
+  const user = await getCurrentUser();
 
   requireOwnerSuperAdmin(user?.email);
 

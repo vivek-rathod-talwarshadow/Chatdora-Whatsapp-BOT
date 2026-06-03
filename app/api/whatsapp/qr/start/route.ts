@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 
 import "@/lib/whatsapp/bootstrap";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getInboundCallbackUrls } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   createRestartWorkspaceId,
   ensureWhatsAppConnection,
@@ -40,11 +40,8 @@ function mergeEngineStatus(
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createSupabaseServerClient();
+    const user = await getCurrentUser();
     const adminSupabase = getSupabaseAdmin();
-    const {
-      data: { user }
-    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -5,9 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getPlanSummaryForBusiness } from "@/lib/billing";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function formatTimestamp(value: string) {
   return new Date(value).toISOString().replace("T", " ").slice(0, 16) + " UTC";
@@ -21,10 +21,7 @@ export default async function MessagesPage({
     source?: string;
   };
 }) {
-  const authSupabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await authSupabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     throw new Error("Unauthorized");

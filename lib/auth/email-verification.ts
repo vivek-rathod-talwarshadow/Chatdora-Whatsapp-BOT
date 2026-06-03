@@ -6,8 +6,10 @@ import { getAppUrl } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
+export const VERIFICATION_RESEND_COOLDOWN_SECONDS = 60;
 
 type AuthUser = {
+  created_at?: string;
   email?: string | null;
   email_confirmed_at?: string | null;
   id: string;
@@ -92,6 +94,34 @@ export async function createOrRefreshVerificationToken(userId: string, email: st
     rawToken,
     verificationUrl: getVerificationUrl(rawToken)
   };
+}
+
+export async function getVerificationResendCooldown(userId: string) {
+  const admin = getSupabaseAdmin();
+  const { data, error } = await admin
+    .from("email_verification_tokens")
+    .select("created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.created_at) {
+    return 0;
+  }
+
+  const expiresAt = new Date(data.created_at).getTime() + VERIFICATION_RESEND_COOLDOWN_SECONDS * 1000;
+  const remainingMs = expiresAt - Date.now();
+
+  if (remainingMs <= 0) {
+    return 0;
+  }
+
+  return Math.ceil(remainingMs / 1000);
 }
 
 export async function consumeVerificationToken(rawToken: string) {

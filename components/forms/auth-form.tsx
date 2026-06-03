@@ -26,10 +26,23 @@ export function AuthForm({ mode, defaultEmail = "", verificationMode = false }: 
   const [password, setPassword] = useState("");
   const [isResending, setIsResending] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
 
   useEffect(() => {
     setEmail(defaultEmail);
   }, [defaultEmail]);
+
+  useEffect(() => {
+    if (resendCooldownSeconds <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setResendCooldownSeconds((current) => Math.max(current - 1, 0));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [resendCooldownSeconds]);
 
   async function onSubmit(formData: FormData) {
     if (verificationMode && mode !== "login") {
@@ -84,30 +97,18 @@ export function AuthForm({ mode, defaultEmail = "", verificationMode = false }: 
   }
 
   async function continueWithGoogle() {
-    const supabase = createSupabaseBrowserClient();
     setIsGoogleLoading(true);
-
-    const redirectTo = `${getAppUrl()}/auth/callback?next=${encodeURIComponent("/dashboard")}`;
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo,
-        queryParams: {
-          access_type: "offline",
-          prompt: "select_account"
-        }
-      }
-    });
-
-    if (error) {
-      setIsGoogleLoading(false);
-      toast.error(error.message || "Unable to continue with Google.");
-    }
+    window.location.href = `${getAppUrl()}/api/auth/google?next=${encodeURIComponent("/dashboard")}`;
   }
 
   async function resendVerificationEmail() {
     if (!email.trim()) {
       toast.error("Enter your email first.");
+      return;
+    }
+
+    if (resendCooldownSeconds > 0) {
+      toast.error(`Please wait ${resendCooldownSeconds}s before sending another email.`);
       return;
     }
 
@@ -124,19 +125,47 @@ export function AuthForm({ mode, defaultEmail = "", verificationMode = false }: 
         })
       });
 
-      const payload = (await response.json()) as { error?: string; message?: string };
+      const payload = (await response.json()) as { error?: string; message?: string; retryAfterSeconds?: number };
 
       if (!response.ok) {
+        if (payload.retryAfterSeconds) {
+          setResendCooldownSeconds(payload.retryAfterSeconds);
+        }
         toast.error(payload.error || "Unable to resend verification email.");
         return;
       }
 
+      setResendCooldownSeconds(60);
       toast.success(payload.message || "Verification email sent.");
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } finally {
       setIsResending(false);
     }
   }
+
+  function getResendButtonLabel() {
+    if (isResending) {
+      return "Sending...";
+    }
+
+    if (resendCooldownSeconds > 0) {
+      return `Resend in ${String(Math.floor(resendCooldownSeconds / 60)).padStart(2, "0")}:${String(resendCooldownSeconds % 60).padStart(2, "0")}`;
+    }
+
+    return "Resend verification email";
+  }
+
+  const primaryButtonLabel = verificationMode
+    ? isPending
+      ? "Please wait..."
+      : resendCooldownSeconds > 0
+        ? `Send again in ${String(Math.floor(resendCooldownSeconds / 60)).padStart(2, "0")}:${String(resendCooldownSeconds % 60).padStart(2, "0")}`
+        : "Send verification email"
+    : isPending
+      ? "Please wait..."
+      : mode === "login"
+        ? "Login"
+        : "Create account";
 
   const cardDescription = verificationMode
     ? "Use your inbox to verify your account, or request a fresh email below."
@@ -230,12 +259,18 @@ export function AuthForm({ mode, defaultEmail = "", verificationMode = false }: 
               />
             </div>
           )}
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Please wait..." : mode === "login" ? "Login" : verificationMode ? "Send verification email" : "Create account"}
+          <Button type="submit" className="w-full" disabled={isPending || (verificationMode && resendCooldownSeconds > 0)}>
+            {primaryButtonLabel}
           </Button>
           {mode === "login" ? (
-            <Button type="button" variant="outline" className="w-full" disabled={isResending} onClick={resendVerificationEmail}>
-              {isResending ? "Sending..." : "Resend verification email"}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={isResending || resendCooldownSeconds > 0}
+              onClick={resendVerificationEmail}
+            >
+              {getResendButtonLabel()}
             </Button>
           ) : null}
           {!verificationMode ? (

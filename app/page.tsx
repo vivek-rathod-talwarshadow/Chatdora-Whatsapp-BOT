@@ -10,9 +10,9 @@ import { SeoSchema } from "@/components/marketing/seo-schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getCurrentUser } from "@/lib/auth/current-user";
 import { FREE_MONTHLY_MESSAGE_LIMIT, PLUS_PLAN_PRICE_INR } from "@/lib/plans";
 import { getAppUrl } from "@/lib/config";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { formatIndianCurrency } from "@/lib/utils";
 
 const features = [
@@ -59,10 +59,7 @@ export const metadata = {
 };
 
 export default async function LandingPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   return (
     <main className="min-h-screen">
