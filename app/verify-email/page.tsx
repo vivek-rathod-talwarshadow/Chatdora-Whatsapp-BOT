@@ -57,6 +57,7 @@ export default function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) 
   const status = searchParams?.status;
   const email = searchParams?.email;
   const copy = getCopy(status);
+  const isSuccess = status === "success";
 
   return (
     <main className="min-h-screen bg-hero-grid">
@@ -76,17 +77,20 @@ export default function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) 
               </h1>
               <p className="max-w-xl text-base text-muted-foreground md:text-lg">{copy.description}</p>
               {email ? <p className="text-sm text-muted-foreground">Email: {email}</p> : null}
-              {status === "success" ? (
+              {isSuccess ? (
                 <div className="text-sm text-muted-foreground">
                   Continue to{" "}
-                  <Link href="/login" className="font-medium text-primary">
+                  <Link
+                    href={email ? `/login?email=${encodeURIComponent(email)}&verified=1` : "/login?verified=1"}
+                    className="font-medium text-primary"
+                  >
                     Login
                   </Link>
                 </div>
               ) : null}
             </div>
             <div className="flex justify-center lg:justify-end">
-              <AuthForm mode={status === "success" ? "login" : "signup"} defaultEmail={email ?? ""} verificationMode />
+              <AuthForm mode={isSuccess ? "login" : "signup"} defaultEmail={email ?? ""} verificationMode={!isSuccess} />
             </div>
           </div>
         </section>

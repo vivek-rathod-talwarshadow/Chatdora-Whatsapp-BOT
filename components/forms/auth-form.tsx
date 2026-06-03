@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getAppUrl } from "@/lib/config";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type AuthFormProps = {
@@ -24,13 +25,14 @@ export function AuthForm({ mode, defaultEmail = "", verificationMode = false }: 
   const [email, setEmail] = useState(defaultEmail);
   const [password, setPassword] = useState("");
   const [isResending, setIsResending] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   useEffect(() => {
     setEmail(defaultEmail);
   }, [defaultEmail]);
 
   async function onSubmit(formData: FormData) {
-    if (verificationMode) {
+    if (verificationMode && mode !== "login") {
       await resendVerificationEmail();
       return;
     }
@@ -81,6 +83,28 @@ export function AuthForm({ mode, defaultEmail = "", verificationMode = false }: 
     router.refresh();
   }
 
+  async function continueWithGoogle() {
+    const supabase = createSupabaseBrowserClient();
+    setIsGoogleLoading(true);
+
+    const redirectTo = `${getAppUrl()}/auth/callback?next=${encodeURIComponent("/dashboard")}`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+        queryParams: {
+          access_type: "offline",
+          prompt: "select_account"
+        }
+      }
+    });
+
+    if (error) {
+      setIsGoogleLoading(false);
+      toast.error(error.message || "Unable to continue with Google.");
+    }
+  }
+
   async function resendVerificationEmail() {
     if (!email.trim()) {
       toast.error("Enter your email first.");
@@ -128,6 +152,19 @@ export function AuthForm({ mode, defaultEmail = "", verificationMode = false }: 
         <CardDescription>{cardDescription}</CardDescription>
       </CardHeader>
       <CardContent>
+        {!verificationMode ? (
+          <>
+            <Button type="button" variant="outline" className="w-full" disabled={isGoogleLoading || isPending} onClick={continueWithGoogle}>
+              <GoogleIcon />
+              {isGoogleLoading ? "Connecting..." : mode === "login" ? "Continue with Google" : "Sign up with Google"}
+            </Button>
+            <div className="my-4 flex items-center gap-3 text-xs uppercase tracking-[0.22em] text-muted-foreground">
+              <div className="h-px flex-1 bg-border" />
+              <span>Or</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        ) : null}
         <form
           action={(formData) => {
             startTransition(() => {
@@ -163,7 +200,12 @@ export function AuthForm({ mode, defaultEmail = "", verificationMode = false }: 
           </div>
           {mode === "login" ? (
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="password">Password</Label>
+                <Link href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"} className="text-xs font-medium text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 name="password"
@@ -207,5 +249,28 @@ export function AuthForm({ mode, defaultEmail = "", verificationMode = false }: 
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
+      <path
+        d="M21.81 12.23c0-.72-.06-1.25-.19-1.8H12.2v3.56h5.53c-.11.88-.72 2.2-2.08 3.09l-.02.12 3 2.28.21.02c1.94-1.76 3.06-4.34 3.06-7.27Z"
+        fill="#4285F4"
+      />
+      <path
+        d="M12.2 22c2.71 0 4.98-.88 6.64-2.39l-3.17-2.42c-.85.58-1.99.98-3.47.98-2.65 0-4.9-1.76-5.7-4.19l-.12.01-3.12 2.37-.04.11A10.03 10.03 0 0 0 12.2 22Z"
+        fill="#34A853"
+      />
+      <path
+        d="M6.5 13.98a6.1 6.1 0 0 1-.33-1.98c0-.69.12-1.35.31-1.98l-.01-.13-3.16-2.41-.1.05A9.85 9.85 0 0 0 2.08 12c0 1.58.38 3.08 1.05 4.4l3.37-2.42Z"
+        fill="#FBBC05"
+      />
+      <path
+        d="M12.2 5.83c1.87 0 3.13.79 3.85 1.45l2.81-2.69C17.16 3.02 14.91 2 12.2 2a10.03 10.03 0 0 0-8.98 5.53l3.27 2.49c.81-2.43 3.06-4.19 5.71-4.19Z"
+        fill="#EA4335"
+      />
+    </svg>
   );
 }

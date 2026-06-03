@@ -95,9 +95,6 @@ export default async function LandingPage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg">
-                <Link href="#demo">View Demo</Link>
-              </Button>
               <Button asChild variant="ghost" size="lg">
                 <Link href="/help">Help</Link>
               </Button>
