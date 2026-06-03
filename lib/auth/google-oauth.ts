@@ -62,7 +62,7 @@ export async function buildGoogleOAuthStartResponse(nextPath: string) {
   redirectUrl.searchParams.set("redirect_uri", getGoogleOAuthRedirectUri());
   redirectUrl.searchParams.set("response_type", "code");
   redirectUrl.searchParams.set("scope", "openid email profile");
-  redirectUrl.searchParams.set("access_type", "offline");
+  redirectUrl.searchParams.set("access_type", "online");
   redirectUrl.searchParams.set("prompt", "select_account");
   redirectUrl.searchParams.set("state", state);
 
