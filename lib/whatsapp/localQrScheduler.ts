@@ -4,7 +4,8 @@ import { shouldRunBackgroundQrSync } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { syncLocalQrBusiness } from "@/lib/whatsapp/localQrSync";
 
-const SCHEDULER_INTERVAL_MS = 15000;
+const SCHEDULER_INTERVAL_MS = 120000;
+const MAX_BUSINESSES_PER_TICK = 1;
 
 declare global {
   var __chatdoraLocalQrSchedulerStarted__: boolean | undefined;
@@ -19,10 +20,12 @@ async function runLocalQrSchedulerTick() {
   const supabase = getSupabaseAdmin();
   const { data: connections, error } = await supabase
     .from("whatsapp_connections")
-    .select("business_id")
+    .select("business_id, engine_status")
     .eq("mode", "qr_login")
     .eq("status", "connected")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .order("updated_at", { ascending: true })
+    .limit(MAX_BUSINESSES_PER_TICK);
 
   if (error || !connections?.length) {
     return;

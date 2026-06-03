@@ -46,20 +46,45 @@ export function isBackgroundQrSyncEnabled() {
   const value = process.env.ENABLE_BACKGROUND_QR_SYNC?.trim().toLowerCase();
 
   if (!value) {
-    return false;
+    return true;
   }
 
   return !["false", "0", "off", "no"].includes(value);
 }
 
 export function shouldRunBackgroundQrSync() {
-  const inboundCallbackHealth = getInboundCallbackHealth();
+  return isBackgroundQrSyncEnabled();
+}
 
-  if (inboundCallbackHealth.isPublic) {
-    return false;
+function getPositiveIntegerEnv(name: string, fallback: number) {
+  const raw = process.env[name]?.trim();
+
+  if (!raw) {
+    return fallback;
   }
 
-  return isBackgroundQrSyncEnabled();
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+export function getQrSyncMemoryCeilingMb() {
+  return getPositiveIntegerEnv("QR_SYNC_MEMORY_CEILING_MB", 340);
+}
+
+export function getQrSyncMaxConversationsPerRun() {
+  return getPositiveIntegerEnv("QR_SYNC_MAX_CONVERSATIONS_PER_RUN", 8);
+}
+
+export function getQrSyncMaxMessagesPerConversation() {
+  return getPositiveIntegerEnv("QR_SYNC_MAX_MESSAGES_PER_CONVERSATION", 20);
+}
+
+export function getQrSyncMaxRepliesPerRun() {
+  return getPositiveIntegerEnv("QR_SYNC_MAX_REPLIES_PER_RUN", 8);
 }
 
 function isPrivateHostname(hostname: string) {

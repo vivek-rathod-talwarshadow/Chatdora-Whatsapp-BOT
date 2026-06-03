@@ -2,7 +2,14 @@ import "server-only";
 
 import { consumeMonthlyMessageQuota } from "@/lib/billing";
 import { generateBotReply } from "@/lib/bot/botEngine";
-import { getInboundCallbackHealth, isBackgroundQrSyncEnabled } from "@/lib/config";
+import {
+  getInboundCallbackHealth,
+  getQrSyncMaxConversationsPerRun,
+  getQrSyncMaxMessagesPerConversation,
+  getQrSyncMaxRepliesPerRun,
+  getQrSyncMemoryCeilingMb,
+  isBackgroundQrSyncEnabled
+} from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getConnectionWorkspaceId } from "@/lib/whatsapp/connections";
 import { callWhatsAppEngine, getEngineConversations, getWorkspaceId, type EngineConversation, type EngineConversationMessage } from "@/lib/whatsapp/engine";
@@ -10,6 +17,7 @@ import { buildInboundMessageReceiptKey, claimInboundMessageReceipt } from "@/lib
 
 const STALE_SYNC_THRESHOLD_MS = 2 * 60 * 1000;
 const MAX_COLLAPSED_MESSAGES = 5;
+const BYTES_PER_MB = 1024 * 1024;
 const activeBusinessSyncs = new Set<string>();
 
 function getEngineStatusRecord(engineStatus: unknown) {
@@ -133,6 +141,30 @@ function buildCollapsedIncomingMessage(messages: EngineConversationMessage[]) {
     .join("\n");
 }
 
+function getProcessMemoryUsageMb() {
+  const usage = process.memoryUsage();
+
+  return {
+    rssMb: Math.round(usage.rss / BYTES_PER_MB),
+    heapUsedMb: Math.round(usage.heapUsed / BYTES_PER_MB)
+  };
+}
+
+function isMemoryPressureHigh() {
+  const { rssMb } = getProcessMemoryUsageMb();
+  return rssMb >= getQrSyncMemoryCeilingMb();
+}
+
+function getMostRecentMessages(messages: EngineConversationMessage[]) {
+  const maxMessages = getQrSyncMaxMessagesPerConversation();
+
+  if (messages.length <= maxMessages) {
+    return messages;
+  }
+
+  return messages.slice(-maxMessages);
+}
+
 export async function syncLocalQrBusiness(params: { businessId: string; userId?: string | null }) {
   const adminSupabase = getSupabaseAdmin();
   const { businessId, userId } = params;
@@ -197,9 +229,21 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
       };
     }
 
+    if (isMemoryPressureHigh()) {
+      const memory = getProcessMemoryUsageMb();
+
+      return {
+        ok: true,
+        processed: 0,
+        reason: `QR sync skipped to protect memory (${memory.rssMb}MB RSS).`
+      };
+    }
+
     const workspaceId = getConnectionWorkspaceId(connection) ?? getWorkspaceId(businessId);
-    const engineData = await callWhatsAppEngine<Record<string, unknown>>(`/sessions/${workspaceId}/conversations`);
-    const conversations = getEngineConversations(engineData);
+    const conversations = await (async () => {
+      const engineData = await callWhatsAppEngine<Record<string, unknown>>(`/sessions/${workspaceId}/conversations`);
+      return getEngineConversations(engineData).slice(-getQrSyncMaxConversationsPerRun());
+    })();
     const processedIds = new Set(normalizeProcessedMessageIds(connection.engine_status));
     const newlyProcessedIds: string[] = [];
     const engineStatusRecord = getEngineStatusRecord(connection.engine_status);
@@ -208,6 +252,7 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
     const lastLocalSyncAt = getLastLocalSyncAt(connection.engine_status);
     let processedCount = 0;
     let lastProcessingError: string | null = null;
+    const maxRepliesPerRun = getQrSyncMaxRepliesPerRun();
 
     if (!localSyncInitializedAt) {
       for (const conversation of conversations) {
@@ -215,7 +260,7 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
           continue;
         }
 
-        for (const message of conversation.messages) {
+        for (const message of getMostRecentMessages(conversation.messages)) {
           if (message.direction !== "incoming") {
             continue;
           }
@@ -253,13 +298,24 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
     }
 
     for (const conversation of conversations) {
+      if (processedCount >= maxRepliesPerRun) {
+        lastProcessingError = lastProcessingError ?? "QR sync reply cap reached for this run.";
+        break;
+      }
+
+      if (isMemoryPressureHigh()) {
+        const memory = getProcessMemoryUsageMb();
+        lastProcessingError = `QR sync paused to protect memory (${memory.rssMb}MB RSS).`;
+        break;
+      }
+
       const customerPhone = getConversationPhone(conversation);
       const replyRecipient = getConversationRecipient(conversation);
       if (!customerPhone || !replyRecipient || !Array.isArray(conversation.messages)) {
         continue;
       }
 
-      const incomingMessages = conversation.messages
+      const incomingMessages = getMostRecentMessages(conversation.messages)
         .filter((message) => message.direction === "incoming")
         .sort((a, b) => getMessageTimestampMs(a) - getMessageTimestampMs(b));
 
@@ -297,6 +353,17 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
         : null;
 
       for (const message of messagesToProcess) {
+        if (processedCount >= maxRepliesPerRun) {
+          lastProcessingError = lastProcessingError ?? "QR sync reply cap reached for this run.";
+          break;
+        }
+
+        if (isMemoryPressureHigh()) {
+          const memory = getProcessMemoryUsageMb();
+          lastProcessingError = `QR sync paused to protect memory (${memory.rssMb}MB RSS).`;
+          break;
+        }
+
         const externalId = getMessageExternalId(message);
         const content = collapseMessages ? incomingMessageText : getMessageContent(message);
 

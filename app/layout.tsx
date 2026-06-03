@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { NativeAppProvider } from "@/components/pwa/native-app-provider";
 import { getAppUrl } from "@/lib/config";
+import "@/lib/whatsapp/bootstrap";
 import "./globals.css";
 
 const appUrl = getAppUrl();
