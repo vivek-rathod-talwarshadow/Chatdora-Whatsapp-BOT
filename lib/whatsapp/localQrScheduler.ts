@@ -4,8 +4,10 @@ import { shouldRunBackgroundQrSync } from "@/lib/config";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { syncLocalQrBusiness } from "@/lib/whatsapp/localQrSync";
 
-const SCHEDULER_INTERVAL_MS = 120000;
-const MAX_BUSINESSES_PER_TICK = 1;
+// Keep QR polling responsive enough for near-real-time replies without
+// overwhelming smaller deployments.
+const SCHEDULER_INTERVAL_MS = 30000;
+const MAX_BUSINESSES_PER_TICK = 6;
 
 declare global {
   var __chatdoraLocalQrSchedulerStarted__: boolean | undefined;
