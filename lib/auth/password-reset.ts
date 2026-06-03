@@ -7,12 +7,19 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const PASSWORD_RESET_TTL_HOURS = 2;
 
+type PasswordResetPayload = {
+  email: string;
+  exp: number;
+  iat: number;
+  uid: string;
+};
+
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-function hashToken(token: string) {
-  return crypto.createHash("sha256").update(token).digest("hex");
+function getPasswordResetSecret() {
+  return process.env.PASSWORD_RESET_SECRET?.trim() || process.env.APP_SESSION_SECRET?.trim() || "";
 }
 
 function getPublicAppUrl() {
@@ -24,27 +31,63 @@ function getPasswordResetUrl(token: string) {
   return new URL(`/reset-password?token=${encodeURIComponent(token)}`, baseUrl).toString();
 }
 
+function toBase64Url(value: string) {
+  return Buffer.from(value, "utf8").toString("base64url");
+}
+
+function fromBase64Url(value: string) {
+  return Buffer.from(value, "base64url").toString("utf8");
+}
+
+function signValue(value: string) {
+  const secret = getPasswordResetSecret();
+
+  if (!secret) {
+    throw new Error("PASSWORD_RESET_SECRET or APP_SESSION_SECRET is required.");
+  }
+
+  return crypto.createHmac("sha256", secret).update(value).digest("base64url");
+}
+
+function buildPasswordResetToken(payload: PasswordResetPayload) {
+  const encodedPayload = toBase64Url(JSON.stringify(payload));
+  const signature = signValue(encodedPayload);
+
+  return `${encodedPayload}.${signature}`;
+}
+
+function parsePasswordResetToken(token: string) {
+  const [encodedPayload, signature] = token.split(".");
+
+  if (!encodedPayload || !signature) {
+    return null;
+  }
+
+  const expectedSignature = signValue(encodedPayload);
+  if (signature.length !== expectedSignature.length) {
+    return null;
+  }
+
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(fromBase64Url(encodedPayload)) as PasswordResetPayload;
+  } catch {
+    return null;
+  }
+}
+
 export async function createPasswordResetToken(userId: string, email: string) {
-  const admin = getSupabaseAdmin();
-  const rawToken = crypto.randomBytes(32).toString("hex");
-  const tokenHash = hashToken(rawToken);
-  const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_HOURS * 60 * 60 * 1000).toISOString();
-
-  const { error: cleanupError } = await admin.from("password_reset_tokens").delete().eq("user_id", userId);
-  if (cleanupError) {
-    throw cleanupError;
-  }
-
-  const { error } = await admin.from("password_reset_tokens").insert({
-    user_id: userId,
+  const issuedAt = Date.now();
+  const payload: PasswordResetPayload = {
     email: normalizeEmail(email),
-    token_hash: tokenHash,
-    expires_at: expiresAt
-  });
-
-  if (error) {
-    throw error;
-  }
+    exp: issuedAt + PASSWORD_RESET_TTL_HOURS * 60 * 60 * 1000,
+    iat: issuedAt,
+    uid: userId
+  };
+  const rawToken = buildPasswordResetToken(payload);
 
   return {
     rawToken,
@@ -54,31 +97,36 @@ export async function createPasswordResetToken(userId: string, email: string) {
 
 export async function validatePasswordResetToken(rawToken: string) {
   const admin = getSupabaseAdmin();
-  const tokenHash = hashToken(rawToken);
+  const payload = parsePasswordResetToken(rawToken);
 
-  const { data: tokenRow, error } = await admin
-    .from("password_reset_tokens")
-    .select("id, user_id, email, expires_at, consumed_at")
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
+  if (!payload) {
+    return { ok: false as const, reason: "invalid" };
+  }
+
+  if (payload.exp < Date.now()) {
+    return { ok: false as const, reason: "expired", email: payload.email };
+  }
+
+  const { data, error } = await admin.auth.admin.getUserById(payload.uid);
 
   if (error) {
     throw error;
   }
 
-  if (!tokenRow || tokenRow.consumed_at) {
+  const user = data.user;
+  if (!user || normalizeEmail(user.email ?? "") !== payload.email) {
     return { ok: false as const, reason: "invalid" };
   }
 
-  if (new Date(tokenRow.expires_at).getTime() < Date.now()) {
-    return { ok: false as const, reason: "expired", email: tokenRow.email };
+  const userUpdatedAtMs = user.updated_at ? new Date(user.updated_at).getTime() : 0;
+  if (Number.isFinite(userUpdatedAtMs) && userUpdatedAtMs > payload.iat) {
+    return { ok: false as const, reason: "expired", email: payload.email };
   }
 
   return {
     ok: true as const,
-    tokenId: tokenRow.id,
-    userId: tokenRow.user_id,
-    email: tokenRow.email
+    email: payload.email,
+    userId: payload.uid
   };
 }
 
@@ -96,16 +144,6 @@ export async function consumePasswordResetToken(rawToken: string, newPassword: s
 
   if (updateError) {
     throw updateError;
-  }
-
-  const consumedAt = new Date().toISOString();
-  const { error: markError } = await admin
-    .from("password_reset_tokens")
-    .update({ consumed_at: consumedAt })
-    .eq("id", validation.tokenId);
-
-  if (markError) {
-    throw markError;
   }
 
   return { ok: true as const, email: validation.email };
