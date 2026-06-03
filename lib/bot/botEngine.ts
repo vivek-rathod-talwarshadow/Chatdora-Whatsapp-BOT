@@ -308,7 +308,8 @@ export async function generateBotReply({
   incomingMessage,
   sendReply = false,
   persistLogs = true,
-  connectionMode = "meta_api"
+  connectionMode = "meta_api",
+  forceSendReply = false
 }: {
   businessId: string;
   customerPhone: string;
@@ -317,6 +318,7 @@ export async function generateBotReply({
   sendReply?: boolean;
   persistLogs?: boolean;
   connectionMode?: WhatsAppConnectionMode;
+  forceSendReply?: boolean;
 }) {
   const supabase = getSupabaseAdmin();
   const { data: business } = await supabase.from("businesses").select("*").eq("id", businessId).single();
@@ -374,7 +376,8 @@ export async function generateBotReply({
         sendReply: false,
         persistLogs: persistLogs && (allowLockedStorageFeatures || persistMessageLogsForCompatibility),
         canStoreLeads: allowLockedStorageFeatures,
-        connectionMode
+        connectionMode,
+        forceSendReply
       });
     }
   } catch {
@@ -394,7 +397,8 @@ export async function generateBotReply({
       sendReply,
       persistLogs: persistLogs && (allowLockedStorageFeatures || persistMessageLogsForCompatibility),
       canStoreLeads: allowLockedStorageFeatures,
-      connectionMode
+      connectionMode,
+      forceSendReply
     });
   }
 
@@ -412,7 +416,8 @@ export async function generateBotReply({
       sendReply,
       persistLogs: persistLogs && (allowLockedStorageFeatures || persistMessageLogsForCompatibility),
       canStoreLeads: allowLockedStorageFeatures,
-      connectionMode
+      connectionMode,
+      forceSendReply
     });
   }
 
@@ -431,7 +436,8 @@ export async function generateBotReply({
       sendReply,
       persistLogs: persistLogs && (allowLockedStorageFeatures || persistMessageLogsForCompatibility),
       canStoreLeads: allowLockedStorageFeatures,
-      connectionMode
+      connectionMode,
+      forceSendReply
     });
   }
 
@@ -451,7 +457,8 @@ export async function generateBotReply({
       sendReply,
       persistLogs: persistLogs && (allowLockedStorageFeatures || persistMessageLogsForCompatibility),
       canStoreLeads: allowLockedStorageFeatures,
-      connectionMode
+      connectionMode,
+      forceSendReply
     });
   }
 
@@ -512,7 +519,8 @@ export async function generateBotReply({
     sendReply,
     persistLogs: persistLogs && (allowLockedStorageFeatures || persistMessageLogsForCompatibility),
     canStoreLeads: allowLockedStorageFeatures,
-    connectionMode
+    connectionMode,
+    forceSendReply
   });
 }
 
@@ -531,7 +539,8 @@ async function finalizeBotResponse({
   sendReply,
   persistLogs,
   canStoreLeads,
-  connectionMode
+  connectionMode,
+  forceSendReply
 }: {
   supabase: ReturnType<typeof getSupabaseAdmin>;
   business: any;
@@ -548,6 +557,7 @@ async function finalizeBotResponse({
   persistLogs?: boolean;
   canStoreLeads?: boolean;
   connectionMode?: WhatsAppConnectionMode;
+  forceSendReply?: boolean;
 }) {
   const leadIntent = detectLeadIntent(incomingMessage, { hasPriorConversation });
   const recentSendDuplicateSince = new Date(Date.now() - 90 * 1000).toISOString();
@@ -566,7 +576,7 @@ async function finalizeBotResponse({
       .limit(1)
       .maybeSingle();
 
-    if (recentHandledMessage?.id) {
+    if (recentHandledMessage?.id && !forceSendReply) {
       shouldSendReply = false;
     }
 

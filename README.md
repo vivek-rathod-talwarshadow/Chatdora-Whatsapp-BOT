@@ -39,7 +39,7 @@ Set:
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 WHATSAPP_ENGINE_BASE_URL=https://wa.chatdora.in
 CHATDORA_DASHBOARD_TOKEN=
-ENABLE_BACKGROUND_QR_SYNC=true
+ENABLE_BACKGROUND_QR_SYNC=auto
 QR_SYNC_MEMORY_CEILING_MB=340
 QR_SYNC_MAX_CONVERSATIONS_PER_RUN=8
 QR_SYNC_MAX_MESSAGES_PER_CONVERSATION=20
@@ -72,7 +72,13 @@ WHATSAPP_ENGINE_BASE_URL=http://127.0.0.1:3001
 
 `CHATDORA_DASHBOARD_TOKEN` is optional right now if your WhatsApp Engine does not enforce server-to-server auth yet. If you later add engine auth, set the same token in both services.
 
-`ENABLE_BACKGROUND_QR_SYNC` is the QR-mode fallback processor. Keep it `true` if you need the dashboard app to keep pulling inbound QR messages from the engine. Set it to `false` only when you are sure direct inbound callbacks to `/api/inbound-message` are working in production.
+`ENABLE_BACKGROUND_QR_SYNC` controls the QR fallback processor:
+
+- `auto`: recommended default. Prefer direct callbacks, but if QR callbacks go quiet for a few minutes the dashboard can fall back to lightweight polling.
+- `always`: force polling even when public callbacks exist.
+- `false`: disable polling completely.
+
+`true` is treated like `auto` for backward compatibility.
 
 For Render protection, the QR fallback worker also supports hard caps:
 

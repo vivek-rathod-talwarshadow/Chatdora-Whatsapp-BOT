@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const workspaceId = getConnectionWorkspaceId(connection) ?? getWorkspaceId(businessId);
     const response = await callWhatsAppEngine(`/sessions/${workspaceId}/send`, {
       method: "POST",
-      body: JSON.stringify({ to, message })
+      body: JSON.stringify({ phone: to, reply: message })
     });
 
     return NextResponse.json(response);

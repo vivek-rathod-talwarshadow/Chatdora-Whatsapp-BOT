@@ -42,14 +42,32 @@ export function getWhatsAppEngineDashboardToken() {
   return token;
 }
 
-export function isBackgroundQrSyncEnabled() {
+export type BackgroundQrSyncMode = "off" | "auto" | "always";
+
+export function getBackgroundQrSyncMode(): BackgroundQrSyncMode {
   const value = process.env.ENABLE_BACKGROUND_QR_SYNC?.trim().toLowerCase();
 
   if (!value) {
-    return true;
+    return "auto";
   }
 
-  return !["false", "0", "off", "no"].includes(value);
+  if (["false", "0", "off", "no", "disabled"].includes(value)) {
+    return "off";
+  }
+
+  if (["always", "force"].includes(value)) {
+    return "always";
+  }
+
+  if (["auto", "true", "1", "on", "yes", "enabled"].includes(value)) {
+    return "auto";
+  }
+
+  return "auto";
+}
+
+export function isBackgroundQrSyncEnabled() {
+  return getBackgroundQrSyncMode() !== "off";
 }
 
 export function shouldRunBackgroundQrSync() {

@@ -59,3 +59,23 @@ export async function claimInboundMessageReceipt(params: {
 
   return { claimed: true as const, countedAtReceipt: true as const };
 }
+
+export async function releaseInboundMessageReceipt(params: {
+  businessId: string;
+  receiptKey: string;
+}) {
+  const supabase = getSupabaseAdmin();
+  const { error } = await supabase
+    .from("inbound_message_receipts")
+    .delete()
+    .eq("business_id", params.businessId)
+    .eq("receipt_key", params.receiptKey);
+
+  if (error?.code === "PGRST205") {
+    return;
+  }
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}

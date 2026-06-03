@@ -3,6 +3,7 @@ import "server-only";
 import { consumeMonthlyMessageQuota } from "@/lib/billing";
 import { generateBotReply } from "@/lib/bot/botEngine";
 import {
+  getBackgroundQrSyncMode,
   getInboundCallbackHealth,
   getQrSyncMaxConversationsPerRun,
   getQrSyncMaxMessagesPerConversation,
@@ -13,9 +14,10 @@ import {
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getConnectionWorkspaceId } from "@/lib/whatsapp/connections";
 import { callWhatsAppEngine, getEngineConversations, getWorkspaceId, type EngineConversation, type EngineConversationMessage } from "@/lib/whatsapp/engine";
-import { buildInboundMessageReceiptKey, claimInboundMessageReceipt } from "@/lib/whatsapp/inboundReceipts";
+import { buildInboundMessageReceiptKey, claimInboundMessageReceipt, releaseInboundMessageReceipt } from "@/lib/whatsapp/inboundReceipts";
 
 const STALE_SYNC_THRESHOLD_MS = 2 * 60 * 1000;
+const RECENT_INBOUND_CALLBACK_THRESHOLD_MS = 5 * 60 * 1000;
 const MAX_COLLAPSED_MESSAGES = 5;
 const BYTES_PER_MB = 1024 * 1024;
 const activeBusinessSyncs = new Set<string>();
@@ -64,6 +66,28 @@ function getLastLocalSyncAt(engineStatus: unknown) {
   return statusRecord && typeof statusRecord.last_local_sync_at === "string"
     ? statusRecord.last_local_sync_at
     : null;
+}
+
+function getLastInboundCallbackAt(engineStatus: unknown) {
+  const statusRecord = getEngineStatusRecord(engineStatus);
+  return statusRecord && typeof statusRecord.last_inbound_callback_at === "string"
+    ? statusRecord.last_inbound_callback_at
+    : null;
+}
+
+function hasRecentInboundCallback(engineStatus: unknown) {
+  const lastInboundCallbackAt = getLastInboundCallbackAt(engineStatus);
+
+  if (!lastInboundCallbackAt) {
+    return false;
+  }
+
+  const lastInboundCallbackMs = new Date(lastInboundCallbackAt).getTime();
+  if (!Number.isFinite(lastInboundCallbackMs) || lastInboundCallbackMs <= 0) {
+    return false;
+  }
+
+  return Date.now() - lastInboundCallbackMs < RECENT_INBOUND_CALLBACK_THRESHOLD_MS;
 }
 
 function getMessageExternalId(message: EngineConversationMessage) {
@@ -165,6 +189,22 @@ function getMostRecentMessages(messages: EngineConversationMessage[]) {
   return messages.slice(-maxMessages);
 }
 
+function markMessagesAsProcessed(params: {
+  messages: EngineConversationMessage[];
+  processedIds: Set<string>;
+  newlyProcessedIds: string[];
+}) {
+  for (const message of params.messages) {
+    const externalId = getMessageExternalId(message);
+    if (!externalId) {
+      continue;
+    }
+
+    params.processedIds.add(externalId);
+    params.newlyProcessedIds.push(externalId);
+  }
+}
+
 export async function syncLocalQrBusiness(params: { businessId: string; userId?: string | null }) {
   const adminSupabase = getSupabaseAdmin();
   const { businessId, userId } = params;
@@ -180,12 +220,11 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
   activeBusinessSyncs.add(businessId);
 
   try {
-    const inboundCallbackHealth = getInboundCallbackHealth();
-    if (inboundCallbackHealth.isPublic && !isBackgroundQrSyncEnabled()) {
+    if (!isBackgroundQrSyncEnabled()) {
       return {
         ok: true,
         processed: 0,
-        reason: "Public callback is available, sync polling not required."
+        reason: "Background QR sync is disabled."
       };
     }
 
@@ -218,6 +257,17 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
         ok: true,
         processed: 0,
         reason: "QR connection is not active."
+      };
+    }
+
+    const inboundCallbackHealth = getInboundCallbackHealth();
+    const backgroundQrSyncMode = getBackgroundQrSyncMode();
+
+    if (inboundCallbackHealth.isPublic && backgroundQrSyncMode === "auto" && hasRecentInboundCallback(connection.engine_status)) {
+      return {
+        ok: true,
+        processed: 0,
+        reason: "Recent inbound callback detected, background QR sync skipped."
       };
     }
 
@@ -371,20 +421,27 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
           continue;
         }
 
+        const messagesCoveredByAttempt = collapseMessages ? pendingMessages : [message];
+        const receiptKey = buildInboundMessageReceiptKey({
+          scopeId: workspaceId,
+          customerPhone,
+          incomingMessage: content,
+          explicitMessageId: externalId,
+          timestamp: message.timestamp
+        });
+
         try {
-          const receiptKey = buildInboundMessageReceiptKey({
-            scopeId: workspaceId,
-            customerPhone,
-            incomingMessage: content,
-            explicitMessageId: externalId,
-            timestamp: message.timestamp
-          });
           const receiptClaim = await claimInboundMessageReceipt({
             businessId,
             receiptKey
           });
 
           if (!receiptClaim.claimed) {
+            markMessagesAsProcessed({
+              messages: messagesCoveredByAttempt,
+              processedIds,
+              newlyProcessedIds
+            });
             continue;
           }
 
@@ -395,6 +452,11 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
           });
 
           if (!quota.allowed) {
+            markMessagesAsProcessed({
+              messages: messagesCoveredByAttempt,
+              processedIds,
+              newlyProcessedIds
+            });
             continue;
           }
 
@@ -405,7 +467,8 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
             incomingMessage: content,
             sendReply: false,
             persistLogs: true,
-            connectionMode: "qr_login"
+            connectionMode: "qr_login",
+            forceSendReply: true
           });
 
           if (result.shouldSendReply && result.finalReply.trim()) {
@@ -415,17 +478,18 @@ export async function syncLocalQrBusiness(params: { businessId: string; userId?:
             });
           }
 
+          markMessagesAsProcessed({
+            messages: messagesCoveredByAttempt,
+            processedIds,
+            newlyProcessedIds
+          });
           processedCount += 1;
         } catch (error) {
+          await releaseInboundMessageReceipt({
+            businessId,
+            receiptKey
+          }).catch(() => undefined);
           lastProcessingError = error instanceof Error ? error.message : "Unable to process one incoming message";
-        }
-      }
-
-      for (const message of pendingMessages) {
-        const externalId = getMessageExternalId(message);
-        if (externalId) {
-          processedIds.add(externalId);
-          newlyProcessedIds.push(externalId);
         }
       }
     }

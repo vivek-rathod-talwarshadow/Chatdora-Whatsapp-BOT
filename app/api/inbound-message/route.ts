@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { consumeMonthlyMessageQuota } from "@/lib/billing";
 import { generateBotReply } from "@/lib/bot/botEngine";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { buildInboundMessageReceiptKey, claimInboundMessageReceipt } from "@/lib/whatsapp/inboundReceipts";
+import { updateWhatsAppConnection } from "@/lib/whatsapp/connections";
+import { buildInboundMessageReceiptKey, claimInboundMessageReceipt, releaseInboundMessageReceipt } from "@/lib/whatsapp/inboundReceipts";
 
 function asRecord(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -305,15 +306,33 @@ export async function POST(request: Request) {
       });
     }
 
-    const result = await generateBotReply({
+    let result;
+    try {
+      result = await generateBotReply({
+        businessId: connection.business_id,
+        customerPhone,
+        customerName,
+        incomingMessage,
+        sendReply: false,
+        persistLogs: true,
+        connectionMode: "qr_login"
+      });
+    } catch (error) {
+      await releaseInboundMessageReceipt({
+        businessId: connection.business_id,
+        receiptKey: inboundMessageKey
+      }).catch(() => undefined);
+      throw error;
+    }
+
+    await updateWhatsAppConnection({
       businessId: connection.business_id,
-      customerPhone,
-      customerName,
-      incomingMessage,
-      sendReply: false,
-      persistLogs: true,
-      connectionMode: "qr_login"
-    });
+      lastError: null,
+      engineStatus: {
+        last_inbound_callback_at: new Date().toISOString(),
+        last_inbound_receipt_key: inboundMessageKey
+      }
+    }).catch(() => undefined);
 
     return NextResponse.json({
       ai_sent: Boolean(result.finalReply.trim()),

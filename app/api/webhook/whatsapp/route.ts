@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { consumeMonthlyMessageQuota } from "@/lib/billing";
 import { generateBotReply } from "@/lib/bot/botEngine";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { buildInboundMessageReceiptKey, claimInboundMessageReceipt } from "@/lib/whatsapp/inboundReceipts";
+import { buildInboundMessageReceiptKey, claimInboundMessageReceipt, releaseInboundMessageReceipt } from "@/lib/whatsapp/inboundReceipts";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -99,14 +99,23 @@ export async function POST(request: Request) {
             continue;
           }
 
-          await generateBotReply({
-            businessId: settings.business_id,
-            customerPhone,
-            customerName,
-            incomingMessage: text,
-            sendReply: true,
-            connectionMode: "meta_api"
-          });
+          try {
+            await generateBotReply({
+              businessId: settings.business_id,
+              customerPhone,
+              customerName,
+              incomingMessage: text,
+              sendReply: true,
+              connectionMode: "meta_api",
+              forceSendReply: true
+            });
+          } catch (error) {
+            await releaseInboundMessageReceipt({
+              businessId: settings.business_id,
+              receiptKey
+            }).catch(() => undefined);
+            throw error;
+          }
         } catch {
           continue;
         }

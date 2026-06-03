@@ -63,6 +63,9 @@ export function startLocalQrScheduler() {
         scheduleNextTick();
       }
     }, SCHEDULER_INTERVAL_MS);
+
+    // Let the process go idle naturally when nothing else is active.
+    globalThis.__chatdoraLocalQrSchedulerTimer__?.unref?.();
   };
 
   void runLocalQrSchedulerTick().finally(scheduleNextTick);
