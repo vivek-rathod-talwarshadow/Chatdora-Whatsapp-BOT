@@ -313,7 +313,9 @@ export async function POST(request: Request) {
         customerPhone,
         customerName,
         incomingMessage,
-        sendReply: false,
+        // Send the WhatsApp reply directly from the dashboard so QR mode
+        // does not depend on the engine honoring the webhook response body.
+        sendReply: true,
         persistLogs: true,
         connectionMode: "qr_login"
       });
@@ -335,8 +337,9 @@ export async function POST(request: Request) {
     }).catch(() => undefined);
 
     return NextResponse.json({
-      ai_sent: Boolean(result.finalReply.trim()),
-      reply: result.finalReply,
+      ai_sent: false,
+      reply: "",
+      generated_reply: result.finalReply,
       lead_id: result.leadDetected ? "detected" : null,
       deduped: false
     });
